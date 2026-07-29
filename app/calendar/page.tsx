@@ -1,5 +1,11 @@
-import { LogoutButton } from "@/components/LogoutButton";
+import { CalendarShell } from "@/components/calendar/CalendarShell";
+import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
+import { listRoomsWithAvailability } from "@/lib/server/rooms";
 import { requirePageUser } from "@/lib/server/session";
+import {
+  getZonedDateIso,
+  serializeUtcInstant,
+} from "@/lib/time";
 
 export const metadata = {
   title: "Calendar",
@@ -7,29 +13,20 @@ export const metadata = {
 
 export default async function CalendarPage() {
   const user = await requirePageUser();
+  const now = new Date();
+  const initialActiveDate = getZonedDateIso(now, OFFICE_TIME_ZONE);
+  const initialRooms = await listRoomsWithAvailability({
+    activeDate: initialActiveDate,
+    timeZone: OFFICE_TIME_ZONE,
+    now,
+  });
 
   return (
-    <main className="workspace-page">
-      <header className="workspace-header">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            R
-          </span>
-          <span>Room Booker</span>
-        </div>
-        <div className="user-menu">
-          <span>{user.displayName}</span>
-          <LogoutButton />
-        </div>
-      </header>
-
-      <section className="foundation-state">
-        <h1>The room calendar starts here.</h1>
-        <p>
-          Authentication and the persistent room-booking foundation are
-          connected.
-        </p>
-      </section>
-    </main>
+    <CalendarShell
+      displayName={user.displayName}
+      initialNow={serializeUtcInstant(now)}
+      initialActiveDate={initialActiveDate}
+      initialRooms={initialRooms}
+    />
   );
 }
