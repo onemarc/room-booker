@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+/* Shared design tokens used by global primitives and the protected workspace. */
+:root {
+  --ink: #17201b;
+  --muted: #667069;
+  --line: #dfe4df;
+  --surface: #ffffff;
+  --surface-soft: #f5f7f4;
+  --accent: #255b43;
+  --danger: #a13838;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-family: var(--font-host-grotesk), ui-sans-serif, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(37, 91, 67, 0.24);
+  outline-offset: 2px;
+}
+
+/* Brand is shared by the auth shell and the protected application header. */
+.brand {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 11px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 690;
+  letter-spacing: -0.015em;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent);
+  color: white;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.foundation-state h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(31px, 4vw, 42px);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+.foundation-state > p:last-child {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.logout-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.icon-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+/* Protected workspace primitives remain global until the calendar shell lands. */
+.workspace-page {
+  min-height: 100vh;
+  background: var(--surface-soft);
+}
+
+.workspace-header {
+  display: flex;
+  height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0 clamp(20px, 4vw, 56px);
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #4e5851;
+  font-size: 13px;
+  font-weight: 570;
+}
+
+.logout-control {
+  position: relative;
+}
+
+.icon-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: #4c5850;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.icon-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.logout-error {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  width: 210px;
+  border: 1px solid #efd1d1;
+  border-radius: 8px;
+  background: #fff8f8;
+  padding: 9px 11px;
+  box-shadow: 0 12px 30px rgba(55, 40, 40, 0.1);
+}
+
+.foundation-state {
+  width: min(620px, calc(100% - 40px));
+  margin: clamp(80px, 15vh, 160px) auto;
+  border-top: 1px solid #bec8c0;
+  padding-top: 28px;
+}
+
+.foundation-state h1 {
+  max-width: 520px;
+}
+
+@media (max-width: 520px) {
+  .workspace-header {
+    padding: 0 16px;
+  }
+
+  .user-menu > span {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep state changes immediate for users who request reduced motion. */
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
