@@ -9,8 +9,14 @@ export default function AuthLayout({
     <main className="grid min-h-screen grid-cols-1 bg-white min-[901px]:grid-cols-[minmax(480px,1.1fr)_minmax(420px,0.9fr)]">
       {/* Keep the form first in the DOM while placing it on the right at desktop widths. */}
       <section className="col-start-1 row-start-1 flex min-h-screen flex-col px-[22px] pt-6 pb-10 min-[521px]:px-[clamp(40px,7vw,104px)] min-[521px]:pt-10 min-[521px]:pb-16 min-[901px]:col-start-2">
-        <Link className="brand" href="/">
-          <span className="brand-mark" aria-hidden="true">
+        <Link
+          className="inline-flex w-fit items-center gap-[11px] text-[15px] font-[690] tracking-[-0.015em] text-[var(--ink)] no-underline"
+          href="/"
+        >
+          <span
+            className="grid size-[30px] place-items-center rounded-[9px] bg-[var(--accent)] text-[13px] font-[760] text-white"
+            aria-hidden="true"
+          >
             R
           </span>
           <span>Room Booker</span>
