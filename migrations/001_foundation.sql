@@ -1,5 +1,7 @@
+-- UUID generation is shared by all persistent domain tables.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Employees authenticate with canonical email addresses and hashed passwords.
 CREATE TABLE users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   display_name varchar(100) NOT NULL,
@@ -20,6 +22,7 @@ CREATE TABLE users (
   CONSTRAINT users_email_key UNIQUE (email)
 );
 
+-- Only an HMAC of the opaque browser token is persisted.
 CREATE TABLE sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -32,6 +35,7 @@ CREATE TABLE sessions (
 CREATE INDEX sessions_user_id_idx ON sessions (user_id);
 CREATE INDEX sessions_expires_at_idx ON sessions (expires_at);
 
+-- Rooms are seeded reference data; capacity is always a positive headcount.
 CREATE TABLE rooms (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar(100) NOT NULL UNIQUE,
@@ -44,6 +48,7 @@ CREATE TABLE rooms (
   CONSTRAINT rooms_capacity_positive_check CHECK (capacity > 0)
 );
 
+-- timestamptz preserves absolute booking instants independent of display timezone.
 CREATE TABLE bookings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE RESTRICT,
@@ -61,9 +66,11 @@ CREATE TABLE bookings (
   CONSTRAINT bookings_time_order_check CHECK (start_at < end_at)
 );
 
+-- Supports half-open overlap queries scoped to one room and time range.
 CREATE INDEX bookings_room_schedule_idx
   ON bookings (room_id, start_at, end_at);
 
+-- Separate access paths match the upcoming and past My Bookings sort orders.
 CREATE INDEX bookings_author_upcoming_idx
   ON bookings (author_id, start_at ASC);
 

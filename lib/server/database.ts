@@ -2,10 +2,12 @@ import "server-only";
 
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
+// Reuse the pool across Next.js hot reloads instead of opening new connections.
 declare global {
   var roomBookerDatabasePool: Pool | undefined;
 }
 
+// Production modules are stable, so a module-scoped singleton is sufficient there.
 let productionPool: Pool | undefined;
 
 function createPool() {
@@ -49,6 +51,7 @@ export async function withTransaction<Result>(
     await client.query("COMMIT");
     return result;
   } catch (error) {
+    // Preserve the original failure after restoring the connection's transaction state.
     await client.query("ROLLBACK");
     throw error;
   } finally {
