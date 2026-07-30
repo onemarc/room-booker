@@ -63,6 +63,7 @@ function DraftBookingPreview({
         opacity,
       }}
       aria-hidden={!isInteractive}
+      data-booking-draft
       onPointerDown={
         isInteractive ? (event) => onMove(event, selection) : undefined
       }

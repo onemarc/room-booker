@@ -108,9 +108,14 @@ export function BookingPopover({
     });
 
     function handlePointerDown(event: PointerEvent) {
+      const clickedDraft =
+        event.target instanceof Element &&
+        event.target.closest("[data-booking-draft]");
+
       if (
         event.target instanceof Node &&
-        !panelRef.current?.contains(event.target)
+        !panelRef.current?.contains(event.target) &&
+        !clickedDraft
       ) {
         onClose();
       }
@@ -123,8 +128,8 @@ export function BookingPopover({
       }
     }
 
-    // The popover is intentionally non-modal, so it owns outside-click and
-    // Escape dismissal without blocking interaction with the calendar.
+    // The draft card is part of the editor interaction even though it lives in
+    // the grid; moving or resizing it must not dismiss the anchored popover.
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
