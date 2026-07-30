@@ -1,14 +1,13 @@
 import "server-only";
 
-export type FieldErrors = Partial<
-  Record<"displayName" | "email" | "password", string>
->;
+export type FieldErrors = Partial<Record<string, string>>;
 
 export class HttpError extends Error {
   constructor(
     message: string,
     readonly status: number,
     readonly fieldErrors?: FieldErrors,
+    readonly code?: string,
   ) {
     super(message);
     this.name = "HttpError";
@@ -29,6 +28,7 @@ export function handleRouteError(error: unknown) {
     return jsonResponse(
       {
         error: {
+          code: error.code,
           message: error.message,
           fieldErrors: error.fieldErrors,
         },
