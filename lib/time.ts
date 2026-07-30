@@ -333,6 +333,7 @@ export function localDateTimeToUtc(
   date: string,
   time: string,
   timeZone: string,
+  disambiguation: "earlier" | "later" = "earlier",
 ) {
   const dateParts = parseCalendarDate(date);
   const match = LOCAL_TIME_PATTERN.exec(time);
@@ -349,6 +350,7 @@ export function localDateTimeToUtc(
       second: 0,
     },
     timeZone,
+    disambiguation,
   );
 }
 
