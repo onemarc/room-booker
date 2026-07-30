@@ -84,6 +84,8 @@ export async function listRoomsWithAvailability({
     range.start,
     range.end,
   ).filter((slotStart) => slotStart > now);
+  // Availability is intentionally calculated as one free 30-minute interval;
+  // longer bookings are chosen in the booking form and validated by the API.
   const slotLengthMilliseconds =
     CALENDAR_SLOT_MINUTES * 60 * 1000;
 
