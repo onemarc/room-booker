@@ -1,0 +1,57 @@
+import type { ScheduleBooking } from "@/lib/bookings";
+import type { RoomAvailability } from "@/lib/rooms";
+import type { CalendarView } from "@/lib/time";
+import type { BookingAnchor } from "@/components/calendar/booking-popover/BookingPopover";
+
+// These contracts keep the interactive grid shell independent from its
+// selection helpers and make the event payloads explicit for parent state.
+export type DragSelection = {
+  date: string;
+  anchorIndex: number;
+  currentIndex: number;
+};
+
+export type CalendarGridSelection = {
+  date: string;
+  startIndex: number;
+  endIndex: number;
+};
+
+export type BookingSelection = {
+  roomId: string;
+  roomName: string;
+  startAt: string;
+  endAt: string;
+  anchor: BookingAnchor;
+  gridSelection: CalendarGridSelection;
+};
+
+export type EditableBookingSelection = {
+  roomId: string;
+  roomName: string;
+  booking: ScheduleBooking;
+  anchor: BookingAnchor;
+};
+
+export type CalendarGridProps = {
+  activeDate: string;
+  view: CalendarView;
+  timeZone: string;
+  displayName: string;
+  selectedRoom?: RoomAvailability;
+  rooms: RoomAvailability[];
+  selectedRoomId: string;
+  bookings: ScheduleBooking[];
+  isRoomsLoading: boolean;
+  isScheduleLoading: boolean;
+  scheduleError: string;
+  showRoomSelector: boolean;
+  onSelectRoom: (roomId: string) => void;
+  onNavigatePeriod: (direction: -1 | 1) => void;
+  onRetrySchedule: () => void;
+  onOpenBooking: () => void;
+  onCreateSelection: (selection: BookingSelection) => void;
+  onUpdateSelection: (selection: BookingSelection) => void;
+  onEditBooking: (selection: EditableBookingSelection) => void;
+  selectedGridSelection: CalendarGridSelection | null;
+};
