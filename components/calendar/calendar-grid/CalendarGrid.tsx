@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
-import type { ScheduleBooking } from "@/lib/bookings";
-import { BOOKING_COLOR_STYLES } from "@/components/calendar/booking-colors";
-import { OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { formatCalendarDay, formatTimeInZone, getViewDates, getZonedDateIso, getZonedDateTimeParts, localDateTimeToUtc } from "@/lib/time";
 import { getBookingPosition, getOfficeTime, getSelectionBounds, OFFICE_WINDOW_MINUTES, SLOT_COUNT } from "./calendar-grid-utils";
+import { BOOKING_COLOR_STYLES } from "@/components/calendar/booking-colors";
+import { OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { CalendarGridToolbar } from "./CalendarGridToolbar";
 import { useGridSelection } from "./useGridSelection";
+import type { ScheduleBooking } from "@/lib/bookings";
 import type { CalendarGridProps } from "./types";
 
 const HORIZONTAL_GESTURE_THRESHOLD = 80;
