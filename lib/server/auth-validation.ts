@@ -1,5 +1,6 @@
 import "server-only";
 
+import { normalizeEmail } from "@/lib/auth";
 import { HttpError, type FieldErrors } from "@/lib/server/http";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -7,11 +8,6 @@ const MAX_EMAIL_LENGTH = 320;
 const MAX_DISPLAY_NAME_LENGTH = 100;
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
-
-export function normalizeEmail(email: string) {
-  // The database enforces this same canonical representation.
-  return email.trim().toLowerCase();
-}
 
 function characterCount(value: string) {
   return Array.from(value).length;

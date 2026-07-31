@@ -4,6 +4,10 @@ import { createHmac, randomBytes } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  deriveSessionIdentity,
+  isResourceOwner,
+} from "@/lib/auth";
 import { query } from "@/lib/server/database";
 import { HttpError } from "@/lib/server/http";
 import type { AuthenticatedUser } from "@/lib/server/users";
@@ -68,12 +72,14 @@ async function findUserBySessionToken(
   );
   const user = result.rows[0];
 
-  return user
-    ? {
-        id: user.id,
-        displayName: user.display_name,
-      }
-    : null;
+  return deriveSessionIdentity(
+    user
+      ? {
+          id: user.id,
+          displayName: user.display_name,
+        }
+      : null,
+  );
 }
 
 export async function createSession(userId: string) {
@@ -152,7 +158,7 @@ export function assertOwnership(
   resourceOwnerId: string,
 ) {
   // Keep ownership enforcement available to both Route Handlers and the DAL.
-  if (currentUserId !== resourceOwnerId) {
+  if (!isResourceOwner(currentUserId, resourceOwnerId)) {
     throw new HttpError(
       "You do not have permission to change this resource.",
       403,
