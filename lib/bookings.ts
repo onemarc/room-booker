@@ -12,6 +12,7 @@ export type BookingColor = (typeof BOOKING_COLORS)[number];
 export const DEFAULT_BOOKING_COLOR: BookingColor = "sage";
 export const MINIMUM_BOOKING_DURATION_MINUTES = 30;
 export const MAXIMUM_BOOKING_DURATION_MINUTES = 4 * 60;
+export const MAXIMUM_WEEKLY_OCCURRENCES = 52;
 
 export function isBookingColor(value: unknown): value is BookingColor {
   return (
@@ -35,6 +36,14 @@ export function isAllowedBookingDuration(
   );
 }
 
+export function isAllowedWeeklyOccurrenceCount(value: unknown) {
+  return (
+    Number.isInteger(value) &&
+    Number(value) >= 1 &&
+    Number(value) <= MAXIMUM_WEEKLY_OCCURRENCES
+  );
+}
+
 export type ScheduleBooking = {
   id: string;
   title: string;
@@ -53,6 +62,7 @@ export type OwnedBooking = {
   startAt: string;
   endAt: string;
   color: BookingColor;
+  seriesId: string | null;
 };
 
 export type BookingFieldErrors = Partial<
@@ -64,7 +74,8 @@ export type BookingFieldErrors = Partial<
     | "startTime"
     | "endTime"
     | "timeZone"
-    | "color",
+    | "color"
+    | "recurrenceCount",
     string
   >
 >;

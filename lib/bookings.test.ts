@@ -4,6 +4,7 @@ import {
   BOOKING_COLORS,
   DEFAULT_BOOKING_COLOR,
   isAllowedBookingDuration,
+  isAllowedWeeklyOccurrenceCount,
   isBookingColor,
 } from "./bookings.ts";
 
@@ -63,4 +64,14 @@ test("booking duration rejects values outside its boundaries", () => {
     false,
   );
   assert.equal(isAllowedBookingDuration("invalid", "also-invalid"), false);
+});
+
+test("weekly recurrence count accepts 1 through 52 occurrences", () => {
+  assert.equal(isAllowedWeeklyOccurrenceCount(1), true);
+  assert.equal(isAllowedWeeklyOccurrenceCount(8), true);
+  assert.equal(isAllowedWeeklyOccurrenceCount(52), true);
+  assert.equal(isAllowedWeeklyOccurrenceCount(0), false);
+  assert.equal(isAllowedWeeklyOccurrenceCount(53), false);
+  assert.equal(isAllowedWeeklyOccurrenceCount(2.5), false);
+  assert.equal(isAllowedWeeklyOccurrenceCount("8"), false);
 });
