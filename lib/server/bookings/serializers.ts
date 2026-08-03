@@ -27,5 +27,6 @@ export function toOwnedBooking(row: OwnedBookingRow): OwnedBooking {
     startAt: serializeUtcInstant(row.start_at),
     endAt: serializeUtcInstant(row.end_at),
     color: row.color,
+    seriesId: row.series_id,
   };
 }
