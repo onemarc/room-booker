@@ -31,14 +31,23 @@ type MutableRoomAvailability = Omit<
 export async function listRoomsWithAvailability({
   activeDate,
   timeZone,
+  minimumCapacity = 1,
   now = new Date(),
 }: {
   activeDate: string;
   timeZone: string;
+  minimumCapacity?: number;
   now?: Date;
 }): Promise<RoomAvailability[]> {
   parseCalendarDate(activeDate);
   const canonicalTimeZone = canonicalizeTimeZone(timeZone);
+  if (
+    !Number.isInteger(minimumCapacity) ||
+    minimumCapacity < 1 ||
+    minimumCapacity > 1000
+  ) {
+    throw new RangeError("Room capacity must be from 1 through 1000.");
+  }
   const range = getDayRangeUtc(activeDate, canonicalTimeZone);
   const result = await query<RoomScheduleRow>(
     `
@@ -54,9 +63,10 @@ export async function listRoomsWithAvailability({
         ON bookings.room_id = rooms.id
        AND bookings.start_at < $2
        AND bookings.end_at > $1
+      WHERE rooms.capacity >= $3
       ORDER BY rooms.name ASC, bookings.start_at ASC
     `,
-    [range.start, range.end],
+    [range.start, range.end, minimumCapacity],
   );
 
   const rooms = new Map<string, MutableRoomAvailability>();
