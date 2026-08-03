@@ -10,7 +10,8 @@ const PAST_PAGE_SIZE = 10;
 
 const OWNED_BOOKING_SELECT = `
   SELECT bookings.id, bookings.room_id, rooms.name AS room_name,
-    bookings.title, bookings.start_at, bookings.end_at, bookings.color
+    bookings.title, bookings.start_at, bookings.end_at, bookings.color,
+    bookings.series_id
   FROM bookings
   INNER JOIN rooms ON rooms.id = bookings.room_id
 `;
