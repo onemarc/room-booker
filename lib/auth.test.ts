@@ -17,6 +17,7 @@ test("session identity is derived from the verified safe session fields", () => 
   const databaseUser = {
     id: "session-user",
     displayName: "Paul Johnson",
+    emailConfirmed: true,
     email: "private@example.com",
     passwordHash: "never-serialize",
   };
@@ -24,6 +25,7 @@ test("session identity is derived from the verified safe session fields", () => 
   assert.deepEqual(deriveSessionIdentity(databaseUser), {
     id: "session-user",
     displayName: "Paul Johnson",
+    emailConfirmed: true,
   });
   assert.equal(deriveSessionIdentity(null), null);
 });

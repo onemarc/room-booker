@@ -1,6 +1,7 @@
 export type SessionIdentity = {
   id: string;
   displayName: string;
+  emailConfirmed: boolean;
 };
 
 export function normalizeEmail(email: string) {
@@ -19,6 +20,7 @@ export function deriveSessionIdentity(
   return {
     id: sessionUser.id,
     displayName: sessionUser.displayName,
+    emailConfirmed: sessionUser.emailConfirmed,
   };
 }
 
