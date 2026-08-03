@@ -15,6 +15,10 @@ import {
   createSession,
 } from "@/lib/server/session";
 import { createUser } from "@/lib/server/users";
+import {
+  isEmailConfirmationRequired,
+  issueEmailConfirmation,
+} from "@/lib/server/email-confirmation";
 
 export const runtime = "nodejs";
 
@@ -28,15 +32,25 @@ export async function POST(request: Request) {
       await readJsonObject(request),
     );
     const passwordHash = await hashPassword(input.password);
+    const confirmationRequired = isEmailConfirmationRequired();
     const user = await createUser({
       displayName: input.displayName,
       email: input.email,
       passwordHash,
+      emailConfirmed: !confirmationRequired,
     });
+
+    if (confirmationRequired) {
+      await issueEmailConfirmation({
+        userId: user.id,
+        email: input.email,
+        requestOrigin: new URL(request.url).origin,
+      });
+    }
 
     await createSession(user.id);
 
-    return jsonResponse({ user }, 201);
+    return jsonResponse({ user, confirmationRequired }, 201);
   } catch (error) {
     if (isPostgresUniqueViolation(error, "users_email_key")) {
       return handleRouteError(

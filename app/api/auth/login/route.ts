@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       user: {
         id: user.id,
         displayName: user.displayName,
+        emailConfirmed: user.emailConfirmed,
       },
     });
   } catch (error) {
