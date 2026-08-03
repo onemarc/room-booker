@@ -18,6 +18,7 @@ const DEFAULT_SESSION_TTL_DAYS = 7;
 type SessionUserRow = {
   id: string;
   display_name: string;
+  email_confirmed: boolean;
 };
 
 function getSessionSecret() {
@@ -61,7 +62,8 @@ async function findUserBySessionToken(
 ): Promise<AuthenticatedUser | null> {
   const result = await query<SessionUserRow>(
     `
-      SELECT users.id, users.display_name
+      SELECT users.id, users.display_name,
+        users.email_confirmed_at IS NOT NULL AS email_confirmed
       FROM sessions
       INNER JOIN users ON users.id = sessions.user_id
       WHERE sessions.token_hash = $1
@@ -77,6 +79,7 @@ async function findUserBySessionToken(
       ? {
           id: user.id,
           displayName: user.display_name,
+          emailConfirmed: user.email_confirmed,
         }
       : null,
   );
