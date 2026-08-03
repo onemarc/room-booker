@@ -98,6 +98,14 @@ export async function POST(request: Request) {
   try {
     assertStateChangingRequest(request);
     const user = await requireUser();
+    if (!user.emailConfirmed) {
+      throw new HttpError(
+        "Confirm your email before creating a booking.",
+        403,
+        undefined,
+        "email_confirmation_required",
+      );
+    }
     const input = await readJsonObject(request);
     const booking = await createBooking({
       currentUserId: user.id,
@@ -110,6 +118,7 @@ export async function POST(request: Request) {
         endTime: input.endTime,
         timeZone: input.timeZone,
         color: input.color,
+        recurrenceCount: input.recurrenceCount,
       },
     });
 

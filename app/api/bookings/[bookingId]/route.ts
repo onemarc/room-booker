@@ -61,9 +61,19 @@ export async function DELETE(
     assertStateChangingRequest(request);
     const user = await requireUser();
     const { bookingId } = await params;
+    const scope = new URL(request.url).searchParams.get("scope");
+    if (scope !== null && scope !== "occurrence" && scope !== "series") {
+      throw new HttpError(
+        "Cancellation scope must be occurrence or series.",
+        400,
+        undefined,
+        "invalid_cancellation_scope",
+      );
+    }
     const cancelled = await cancelUpcomingBooking({
       bookingId,
       currentUserId: user.id,
+      scope: scope ?? "occurrence",
     });
 
     if (!cancelled) {
