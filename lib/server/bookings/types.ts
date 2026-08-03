@@ -30,6 +30,7 @@ export type OwnedBookingRow = {
   start_at: Date;
   end_at: Date;
   color: BookingColor;
+  series_id: string | null;
 };
 
 export type BookingCursor = {
@@ -46,4 +47,5 @@ export type CreateBookingInput = {
   endTime: unknown;
   timeZone: unknown;
   color?: unknown;
+  recurrenceCount?: unknown;
 };
