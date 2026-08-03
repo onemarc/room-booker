@@ -1,5 +1,6 @@
 import {
   DEFAULT_BOOKING_COLOR,
+  isAllowedWeeklyOccurrenceCount,
   isBookingColor,
   type BookingFieldErrors,
 } from "@/lib/bookings";
@@ -50,6 +51,7 @@ export function validateBookingInput(input: CreateBookingInput, now: Date) {
   );
   const requestedColor =
     input.color === undefined ? DEFAULT_BOOKING_COLOR : input.color;
+  const recurrenceCount = input.recurrenceCount ?? 1;
 
   if (roomId && !isUuid(roomId)) fieldErrors.roomId = "Select an existing room.";
   if ([...title].length > 100) fieldErrors.title = "Use 100 characters or fewer.";
@@ -84,6 +86,10 @@ export function validateBookingInput(input: CreateBookingInput, now: Date) {
   }
   if (!isBookingColor(requestedColor)) {
     fieldErrors.color = "Choose an available booking color.";
+  }
+  if (!isAllowedWeeklyOccurrenceCount(recurrenceCount)) {
+    fieldErrors.recurrenceCount =
+      "Choose from 1 through 52 weekly occurrences.";
   }
   if (Object.keys(fieldErrors).length > 0) {
     throw new HttpError("Check the highlighted booking fields.", 400, fieldErrors, "validation_failed");
@@ -120,5 +126,17 @@ export function validateBookingInput(input: CreateBookingInput, now: Date) {
     throw new HttpError("Bookings must last from 30 minutes through 4 hours.", 400, { endTime: "Choose a duration from 30 minutes through 4 hours." }, "invalid_duration");
   }
 
-  return { roomId, title, startAt, endAt, color: requestedColor };
+  return {
+    roomId,
+    title,
+    startAt,
+    endAt,
+    color: requestedColor,
+    recurrenceCount: Number(recurrenceCount),
+    date,
+    endDate,
+    startTime,
+    endTime,
+    timeZone,
+  };
 }
