@@ -37,7 +37,8 @@ export function LogoutButton() {
   return (
     <div className="logout-control">
       <button
-        className="icon-button"
+        className="grid size-[34px] flex-none cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#526058]
+                  hover:bg-[#edf1ed] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-[18px]"
         type="button"
         aria-label="Log out"
         title="Log out"
