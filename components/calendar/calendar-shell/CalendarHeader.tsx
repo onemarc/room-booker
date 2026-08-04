@@ -1,11 +1,13 @@
 import { FiChevronLeft, FiChevronRight, FiMenu } from "react-icons/fi";
 import { LogoutButton } from "@/components/LogoutButton";
+import { NotificationBell } from "@/components/calendar/NotificationBell";
 import type { CalendarView } from "@/lib/time";
 
 const HEADER_CLASS = [
   "z-30 flex min-h-[58px] flex-none items-center justify-between",
   "gap-[18px] border-b border-[var(--line)] bg-[var(--surface)] px-[13px]",
-  "max-[1060px]:gap-2 max-[1060px]:px-2 max-[760px]:min-w-[700px]",
+  "max-[1060px]:gap-2 max-[1060px]:px-2",
+  "max-[760px]:min-h-[98px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-1 max-[760px]:py-1.5",
 ].join(" ");
 
 const TEXT_BUTTON_CLASS = [
@@ -25,8 +27,9 @@ const MENU_BUTTON_CLASS = [
 ].join(" ");
 
 const DISPLAY_NAME_CLASS = [
-  "max-w-[125px] overflow-hidden text-[13px] font-[620]",
-  "text-ellipsis whitespace-nowrap text-[#4b5750]",
+  "flex h-[34px] max-w-[125px] items-center overflow-hidden rounded-lg px-[9px]",
+  "text-[13px] font-[620] text-ellipsis whitespace-nowrap text-[#4b5750]",
+  "max-[1060px]:px-[7px]",
   "max-[1060px]:max-w-[86px]",
 ].join(" ");
 
@@ -44,6 +47,7 @@ type CalendarHeaderProps = {
   displayName: string;
   periodLabel: string;
   view: CalendarView;
+  timeZone: string;
   onOpenSidebar: () => void;
   onToday: () => void;
   onNavigate: (direction: -1 | 1) => void;
@@ -58,6 +62,7 @@ export function CalendarHeader({
   displayName,
   periodLabel,
   view,
+  timeZone,
   onOpenSidebar,
   onToday,
   onNavigate,
@@ -66,7 +71,7 @@ export function CalendarHeader({
 }: CalendarHeaderProps) {
   return (
     <header className={HEADER_CLASS}>
-      <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] max-[1060px]:gap-[3px]">
+      <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] max-[1060px]:gap-[3px] max-[760px]:flex-none">
         {!isSidebarOpen ? (
           <>
             <button
@@ -91,7 +96,7 @@ export function CalendarHeader({
         </strong>
       </div>
 
-      <div className="flex min-w-0 flex-none items-center gap-[7px] max-[1060px]:gap-[3px]">
+      <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1060px]:gap-[3px] max-[760px]:w-full max-[760px]:pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button className={TEXT_BUTTON_CLASS} type="button" onClick={onToday}>
           Today
         </button>
@@ -145,11 +150,12 @@ export function CalendarHeader({
           aria-hidden="true"
         />
         <span
-          className={DISPLAY_NAME_CLASS}
+          className={`${DISPLAY_NAME_CLASS} max-[640px]:hidden`}
           title={displayName}
         >
           {displayName}
         </span>
+        <NotificationBell timeZone={timeZone} />
         <LogoutButton />
       </div>
     </header>
