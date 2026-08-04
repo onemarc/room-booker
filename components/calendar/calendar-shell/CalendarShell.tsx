@@ -44,12 +44,16 @@ function subscribeToBrowserTimeZone() {
 
 export function CalendarShell({
   displayName,
+  emailConfirmed,
+  confirmationStatus,
   initialNow,
   initialActiveDate,
   initialRooms,
   initialBookings,
 }: {
   displayName: string;
+  emailConfirmed: boolean;
+  confirmationStatus: "success" | "invalid" | null;
   initialNow: string;
   initialActiveDate: string;
   initialRooms: RoomAvailability[];
@@ -66,6 +70,7 @@ export function CalendarShell({
   const [view, setView] = useState<CalendarView>("week");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [rooms, setRooms] = useState(initialRooms);
+  const [minimumCapacity, setMinimumCapacity] = useState(1);
   const [selectedRoomId, setSelectedRoomId] = useState(
     initialRooms[0]?.id ?? "",
   );
@@ -85,6 +90,9 @@ export function CalendarShell({
     useState(0);
   const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
   const [isMyBookingsOpen, setIsMyBookingsOpen] = useState(false);
+  const [isResendingConfirmation, setIsResendingConfirmation] =
+    useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState("");
   const [bookingEditorTarget, setBookingEditorTarget] =
     useState<BookingEditorTarget | null>(null);
   // The completed range is separate from the popover target so the grid can
@@ -95,7 +103,7 @@ export function CalendarShell({
     setBookingEditorTarget(null);
     setSelectedGridSelection(null);
   }, []);
-  const initialRoomsSignature = `${OFFICE_TIME_ZONE}:${initialActiveDate}:0`;
+  const initialRoomsSignature = `${OFFICE_TIME_ZONE}:${initialActiveDate}:1:0`;
   const loadedRoomsSignature = useRef(initialRoomsSignature);
   const initialScheduleSignature = `${OFFICE_TIME_ZONE}:${initialActiveDate}:week:${
     initialRooms[0]?.id ?? ""
@@ -104,12 +112,30 @@ export function CalendarShell({
   const activeDate =
     selectedDate ?? getZonedDateIso(initialNow, timeZone);
   const today = getZonedDateIso(new Date(), timeZone);
-  const roomsRequestKey = `${timeZone}:${activeDate}`;
+  const roomsRequestKey = `${timeZone}:${activeDate}:${minimumCapacity}`;
   // Refresh versions make a deliberate retry distinct from an already-loaded
   // room/date combination without allowing an older response to replace it.
   const roomsRequestSignature = `${roomsRequestKey}:${roomsRefreshVersion}`;
   const scheduleRequestKey = `${timeZone}:${activeDate}:${view}:${selectedRoomId}`;
   const scheduleRequestSignature = `${scheduleRequestKey}:${scheduleRefreshVersion}`;
+
+  useEffect(() => {
+    const narrowLayout = window.matchMedia("(max-width: 760px)");
+
+    function applyPhoneDefaults() {
+      if (narrowLayout.matches) {
+        // A single-day canvas is immediately usable on a phone; Week remains
+        // available as a deliberate horizontally scrollable view.
+        setIsSidebarOpen(false);
+        setView("day");
+      }
+    }
+
+    applyPhoneDefaults();
+    narrowLayout.addEventListener("change", applyPhoneDefaults);
+    return () =>
+      narrowLayout.removeEventListener("change", applyPhoneDefaults);
+  }, []);
 
   useEffect(() => {
     if (loadedRoomsSignature.current === roomsRequestSignature) {
@@ -126,6 +152,7 @@ export function CalendarShell({
         const searchParams = new URLSearchParams({
           date: activeDate,
           timeZone,
+          minCapacity: String(minimumCapacity),
         });
         const response = await fetch(`/api/rooms?${searchParams}`, {
           signal: controller.signal,
@@ -170,6 +197,7 @@ export function CalendarShell({
     return () => controller.abort();
   }, [
     activeDate,
+    minimumCapacity,
     roomsRequestSignature,
     roomsRefreshVersion,
     timeZone,
@@ -298,6 +326,34 @@ export function CalendarShell({
     setScheduleRefreshVersion((current) => current + 1);
   }
 
+  async function resendConfirmation() {
+    setIsResendingConfirmation(true);
+    setConfirmationMessage("");
+
+    try {
+      const response = await fetch("/api/auth/confirm/resend", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      });
+      const data = (await response.json()) as {
+        error?: { message?: string };
+      };
+      setConfirmationMessage(
+        response.ok
+          ? "A fresh confirmation link was printed to the server log."
+          : (data.error?.message ?? "A new link could not be issued."),
+      );
+    } catch {
+      setConfirmationMessage("A new confirmation link could not be issued.");
+    } finally {
+      setIsResendingConfirmation(false);
+    }
+  }
+
   function handleBookingCreated({
     roomId,
     date,
@@ -351,6 +407,7 @@ export function CalendarShell({
           selectedRoomId={selectedRoomId}
           isLoading={isRoomsLoading}
           error={roomError}
+          minimumCapacity={minimumCapacity}
           onClose={() => setIsSidebarOpen(false)}
           onSelectDate={selectActiveDate}
           onVisibleMonthChange={setVisibleMiniCalendarMonth}
@@ -358,22 +415,17 @@ export function CalendarShell({
           onRetry={() =>
             setRoomsRefreshVersion((current) => current + 1)
           }
+          onMinimumCapacityChange={setMinimumCapacity}
         />
       ) : null}
 
-      <section
-        className={[
-          "flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--surface)] max-[760px]:overflow-x-auto",
-          isSidebarOpen ? "max-[760px]:min-w-[460px]" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--surface)]">
         <CalendarHeader
           isSidebarOpen={isSidebarOpen}
           displayName={displayName}
           periodLabel={periodLabel}
           view={view}
+          timeZone={timeZone}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onToday={goToToday}
           onNavigate={navigatePeriod}
@@ -386,6 +438,36 @@ export function CalendarShell({
             setIsMyBookingsOpen(true);
           }}
         />
+        {!emailConfirmed || confirmationStatus === "invalid" ? (
+          <div
+            className="flex flex-none items-center justify-between gap-3 border-b border-[#e5d3aa] bg-[#fffaf0] px-3.5 py-2 text-xs text-[#745b25] max-[640px]:items-start"
+            role={confirmationStatus === "invalid" ? "alert" : "status"}
+          >
+            <span>
+              {confirmationMessage ||
+                (confirmationStatus === "invalid"
+                  ? "That confirmation link is invalid or expired."
+                  : "Confirm your email using the development link in the server log before booking a room.")}
+            </span>
+            {!emailConfirmed ? (
+              <button
+                className="h-8 flex-none cursor-pointer rounded-lg border border-[#d8c38e] bg-white px-3 text-[11px] font-bold text-[#745b25] hover:bg-[#fffdf8] disabled:cursor-wait disabled:opacity-55"
+                type="button"
+                disabled={isResendingConfirmation}
+                onClick={() => void resendConfirmation()}
+              >
+                {isResendingConfirmation ? "Issuing…" : "Print new link"}
+              </button>
+            ) : null}
+          </div>
+        ) : confirmationStatus === "success" ? (
+          <div
+            className="flex flex-none items-center border-b border-[#cfe1d5] bg-[#f3faf5] px-3.5 py-2 text-xs text-[#356047]"
+            role="status"
+          >
+            Email confirmed. You can now create bookings.
+          </div>
+        ) : null}
         {roomError && !isSidebarOpen ? (
           <div
             className={ROOM_ERROR_CLASS}
@@ -416,14 +498,20 @@ export function CalendarShell({
           isRoomsLoading={isRoomsLoading}
           isScheduleLoading={scheduleIsTransitioning}
           scheduleError={scheduleError}
+          canBook={emailConfirmed}
           showRoomSelector={!isSidebarOpen}
+          minimumCapacity={minimumCapacity}
           selectedGridSelection={selectedGridSelection}
           onSelectRoom={selectRoom}
+          onMinimumCapacityChange={setMinimumCapacity}
           onNavigatePeriod={navigatePeriod}
           onRetrySchedule={() =>
             setScheduleRefreshVersion((current) => current + 1)
           }
           onOpenBooking={() => {
+            if (!emailConfirmed) {
+              return;
+            }
             closeBookingEditor();
             setIsBookingFormOpen(true);
           }}
