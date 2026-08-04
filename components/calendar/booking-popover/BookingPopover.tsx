@@ -70,6 +70,7 @@ export function BookingPopover({
   const [color, setColor] = useState<BookingColor>(
     sourceBooking?.color ?? DEFAULT_BOOKING_COLOR,
   );
+  const [recurrenceCount, setRecurrenceCount] = useState(1);
   const [fieldErrors, setFieldErrors] =
     useState<BookingFieldErrors>({});
   const [formError, setFormError] = useState("");
@@ -97,7 +98,7 @@ export function BookingPopover({
   // near the bottom/right edge create an unreachable form.
   const top = Math.max(
     12,
-    Math.min(target.anchor.top, viewportHeight - 472),
+    Math.min(target.anchor.top, viewportHeight - 540),
   );
 
   useEffect(() => {
@@ -169,6 +170,7 @@ export function BookingPopover({
           startTime,
           endTime,
           color,
+          ...(isEdit ? {} : { recurrenceCount }),
           timeZone,
         }),
       });
@@ -324,6 +326,28 @@ export function BookingPopover({
           </div>
           <FieldError message={fieldErrors.color} className="text-[11px]" />
         </fieldset>
+
+        {target.mode === "create" ? (
+          <label className="grid gap-1 text-xs font-[650] text-[#3a463e]">
+            Weekly occurrences
+            <input
+              className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+              type="number"
+              min={1}
+              max={52}
+              step={1}
+              value={recurrenceCount}
+              aria-invalid={Boolean(fieldErrors.recurrenceCount)}
+              onChange={(event) =>
+                setRecurrenceCount(event.currentTarget.valueAsNumber)
+              }
+            />
+            <FieldError
+              message={fieldErrors.recurrenceCount}
+              className="text-[11px]"
+            />
+          </label>
+        ) : null}
 
         <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-3">
           <button
