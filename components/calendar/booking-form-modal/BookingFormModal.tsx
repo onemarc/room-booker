@@ -109,6 +109,7 @@ export function BookingFormModal({
   const [color, setColor] = useState<BookingColor>(
     DEFAULT_BOOKING_COLOR,
   );
+  const [recurrenceCount, setRecurrenceCount] = useState(1);
   const [fieldErrors, setFieldErrors] =
     useState<BookingFieldErrors>({});
   const [formError, setFormError] = useState("");
@@ -153,6 +154,7 @@ export function BookingFormModal({
           endTime,
           title,
           color,
+          recurrenceCount,
           timeZone,
         }),
       });
@@ -292,6 +294,26 @@ export function BookingFormModal({
               {title.length}/100
             </span>
           </span>
+        </label>
+
+        <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
+          Weekly occurrences
+          <input
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            type="number"
+            min={1}
+            max={52}
+            step={1}
+            value={recurrenceCount}
+            aria-invalid={Boolean(fieldErrors.recurrenceCount)}
+            onChange={(event) =>
+              setRecurrenceCount(event.currentTarget.valueAsNumber)
+            }
+          />
+          <span className="text-xs font-normal text-[#7b867f]">
+            Use 1 for a single booking, or repeat weekly up to 52 times.
+          </span>
+          <FieldError message={fieldErrors.recurrenceCount} />
         </label>
 
         <fieldset className="m-0 grid gap-2 border-0 p-0">
