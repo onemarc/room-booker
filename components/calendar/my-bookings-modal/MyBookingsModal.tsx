@@ -8,6 +8,7 @@ import { formatUtcInstant, getZonedDateIso, type CalendarView } from "@/lib/time
 import type { MyBookingsResponse, OwnedBooking } from "@/lib/bookings";
 
 type BookingSection = "upcoming" | "past";
+type CancellationScope = "occurrence" | "series";
 
 function formatBookingDate(booking: OwnedBooking, timeZone: string) {
   return formatUtcInstant(
@@ -103,6 +104,11 @@ function BookingRow({
         </span>
         <span className="overflow-hidden text-[13px] font-[650] text-ellipsis whitespace-nowrap text-[#263129]">
           {booking.title}
+          {booking.seriesId ? (
+            <small className="ml-2 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-[680] text-[var(--accent)]">
+              Weekly
+            </small>
+          ) : null}
         </span>
         <FiArrowRight
           className="size-4 text-[#7a857d] max-[720px]:hidden"
@@ -129,15 +135,19 @@ function ConfirmationDialog({
   timeZone,
   isPending,
   error,
+  scope,
   onCancel,
   onConfirm,
+  onScopeChange,
 }: {
   booking: OwnedBooking;
   timeZone: string;
   isPending: boolean;
   error: string;
+  scope: CancellationScope;
   onCancel: () => void;
   onConfirm: () => void;
+  onScopeChange: (scope: CancellationScope) => void;
 }) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -155,8 +165,8 @@ function ConfirmationDialog({
 
     if (event.key === "Tab") {
       const buttons = [
-        ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
-          "button:not([disabled])",
+        ...event.currentTarget.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled])',
         ),
       ];
       const first = buttons[0];
@@ -202,6 +212,35 @@ function ConfirmationDialog({
           {formatBookingDate(booking, timeZone)} at{" "}
           {formatBookingTime(booking, timeZone)} will be removed.
         </p>
+        {booking.seriesId ? (
+          <fieldset className="mt-4 grid gap-2 rounded-xl border border-[#d8dfda] bg-[#f8faf8] p-3">
+            <legend className="px-1 text-xs font-[680] text-[#3f4b43]">
+              Recurring booking
+            </legend>
+            <label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-[#56625a]">
+              <input
+                className="mt-1 accent-[var(--accent)]"
+                type="radio"
+                name="cancellation-scope"
+                checked={scope === "occurrence"}
+                disabled={isPending}
+                onChange={() => onScopeChange("occurrence")}
+              />
+              Cancel only this occurrence
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-[#56625a]">
+              <input
+                className="mt-1 accent-[var(--accent)]"
+                type="radio"
+                name="cancellation-scope"
+                checked={scope === "series"}
+                disabled={isPending}
+                onChange={() => onScopeChange("series")}
+              />
+              Cancel this and all future occurrences
+            </label>
+          </fieldset>
+        ) : null}
         {error ? (
           <p
             className="mt-3 mb-0 rounded-lg bg-[#fff4f4] px-3 py-2 text-xs text-[#943e3e]"
@@ -265,6 +304,8 @@ export function MyBookingsModal({
   const [isCancelling, setIsCancelling] = useState(false);
   const isCancellingRef = useRef(false);
   const [cancellationError, setCancellationError] = useState("");
+  const [cancellationScope, setCancellationScope] =
+    useState<CancellationScope>("occurrence");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -353,7 +394,9 @@ export function MyBookingsModal({
 
     try {
       const response = await fetch(
-        `/api/bookings/${encodeURIComponent(bookingToCancel.id)}`,
+        `/api/bookings/${encodeURIComponent(
+          bookingToCancel.id,
+        )}?scope=${cancellationScope}`,
         {
           method: "DELETE",
           headers: {
@@ -374,7 +417,11 @@ export function MyBookingsModal({
       }
 
       setUpcoming((current) =>
-        current.filter((booking) => booking.id !== bookingToCancel.id),
+        current.filter((booking) =>
+          cancellationScope === "series" && bookingToCancel.seriesId
+            ? booking.seriesId !== bookingToCancel.seriesId
+            : booking.id !== bookingToCancel.id,
+        ),
       );
       onCancelled(bookingToCancel);
       setBookingToCancel(null);
@@ -497,6 +544,7 @@ export function MyBookingsModal({
                   }}
                   onRequestCancellation={(selectedBooking) => {
                     setCancellationError("");
+                    setCancellationScope("occurrence");
                     setBookingToCancel(selectedBooking);
                   }}
                 />
@@ -532,11 +580,13 @@ export function MyBookingsModal({
           timeZone={timeZone}
           isPending={isCancelling}
           error={cancellationError}
+          scope={cancellationScope}
           onCancel={() => {
             setCancellationError("");
             setBookingToCancel(null);
           }}
           onConfirm={() => void confirmCancellation()}
+          onScopeChange={setCancellationScope}
         />
       ) : null}
     </Modal>
