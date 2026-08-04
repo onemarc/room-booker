@@ -31,6 +31,29 @@ const MINUTE_IN_MILLISECONDS = 60_000;
 const DAY_IN_MILLISECONDS = 24 * 60 * MINUTE_IN_MILLISECONDS;
 const ZONE_NAME_PATTERN = /^[A-Za-z0-9_+\-/]+$/;
 const zonedPartsFormatters = new Map<string, Intl.DateTimeFormat>();
+const canonicalTimeZones = new Map<string, string>();
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getDateTimeFormatter(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+) {
+  const optionEntries = Object.entries(options).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  const key = JSON.stringify([locale, optionEntries]);
+  const cached = dateTimeFormatters.get(key);
+
+  if (cached) {
+    return cached;
+  }
+
+  // Calendar renders repeat a small set of formats across hundreds of cells.
+  // Reusing Intl formatters avoids rebuilding ICU state for every label.
+  const formatter = new Intl.DateTimeFormat(locale, options);
+  dateTimeFormatters.set(key, formatter);
+  return formatter;
+}
 
 function utcEpoch(parts: ZonedDateTimeParts) {
   const value = new Date(0);
@@ -103,6 +126,11 @@ export function canonicalizeTimeZone(value: string) {
     throw new RangeError("The timezone must be a valid IANA timezone.");
   }
 
+  const cached = canonicalTimeZones.get(timeZone);
+  if (cached) {
+    return cached;
+  }
+
   try {
     const resolved = new Intl.DateTimeFormat("en", {
       timeZone,
@@ -110,7 +138,10 @@ export function canonicalizeTimeZone(value: string) {
 
     // Older ICU data reports the legacy alias even when the product's
     // canonical office identifier is Europe/Kyiv.
-    return resolved === "Europe/Kiev" ? OFFICE_TIME_ZONE : resolved;
+    const canonical =
+      resolved === "Europe/Kiev" ? OFFICE_TIME_ZONE : resolved;
+    canonicalTimeZones.set(timeZone, canonical);
+    return canonical;
   } catch {
     throw new RangeError("The timezone must be a valid IANA timezone.");
   }
@@ -364,7 +395,7 @@ export function formatUtcInstant(
   options: Intl.DateTimeFormatOptions,
   locale = "en-GB",
 ) {
-  return new Intl.DateTimeFormat(locale, {
+  return getDateTimeFormatter(locale, {
     ...options,
     timeZone: canonicalizeTimeZone(timeZone),
   }).format(assertValidInstant(value));
@@ -570,7 +601,7 @@ export function formatCalendarMonth(value: string) {
   date.setUTCFullYear(parts.year, parts.month - 1, 1);
   date.setUTCHours(12, 0, 0, 0);
 
-  return new Intl.DateTimeFormat("en", {
+  return getDateTimeFormatter("en", {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -586,7 +617,7 @@ export function formatCalendarDay(
   date.setUTCFullYear(parts.year, parts.month - 1, parts.day);
   date.setUTCHours(12, 0, 0, 0);
 
-  return new Intl.DateTimeFormat("en", {
+  return getDateTimeFormatter("en", {
     ...options,
     timeZone: "UTC",
   }).format(date);
