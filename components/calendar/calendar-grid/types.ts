@@ -45,8 +45,11 @@ export type CalendarGridProps = {
   isRoomsLoading: boolean;
   isScheduleLoading: boolean;
   scheduleError: string;
+  canBook: boolean;
   showRoomSelector: boolean;
+  minimumCapacity: number;
   onSelectRoom: (roomId: string) => void;
+  onMinimumCapacityChange: (value: number) => void;
   onNavigatePeriod: (direction: -1 | 1) => void;
   onRetrySchedule: () => void;
   onOpenBooking: () => void;
