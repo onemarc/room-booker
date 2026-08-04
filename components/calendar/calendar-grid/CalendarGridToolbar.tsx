@@ -1,4 +1,5 @@
 import { FiPlus } from "react-icons/fi";
+import { CapacityFilter } from "@/components/calendar/CapacityFilter";
 import { RoomSelector } from "@/components/calendar/RoomSelector";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import type { RoomAvailability } from "@/lib/rooms";
@@ -13,7 +14,10 @@ export function CalendarGridToolbar({
   timeZone,
   showRoomSelector,
   isRoomsLoading,
+  minimumCapacity,
+  canBook,
   onSelectRoom,
+  onMinimumCapacityChange,
   onOpenBooking,
 }: {
   selectedRoom?: RoomAvailability;
@@ -22,7 +26,10 @@ export function CalendarGridToolbar({
   timeZone: string;
   showRoomSelector: boolean;
   isRoomsLoading: boolean;
+  minimumCapacity: number;
+  canBook: boolean;
   onSelectRoom: (roomId: string) => void;
+  onMinimumCapacityChange: (value: number) => void;
   onOpenBooking: () => void;
 }) {
   const canonicalUserZone = canonicalizeTimeZone(timeZone);
@@ -50,6 +57,13 @@ export function CalendarGridToolbar({
           </span> : null}
       </div>
       <div className="flex items-center gap-3">
+        {showRoomSelector ? (
+          <CapacityFilter
+            value={minimumCapacity}
+            compact
+            onChange={onMinimumCapacityChange}
+          />
+        ) : null}
         <p className="m-0 text-right text-xs text-[#778179] max-[820px]:hidden">
           {canonicalUserZone === canonicalOfficeZone ? 
             `${canonicalOfficeZone} office time` : `Times shown in ${canonicalUserZone} · Office ${canonicalOfficeZone}`
@@ -58,7 +72,12 @@ export function CalendarGridToolbar({
         <button className="flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)] bg-[var(--accent)] 
                           px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
                 type="button"
-                disabled={!selectedRoom}
+                disabled={!selectedRoom || !canBook}
+                title={
+                  canBook
+                    ? "Create a booking"
+                    : "Confirm your email before booking"
+                }
                 onClick={onOpenBooking}>
           <FiPlus aria-hidden="true" /> Book room
         </button>
