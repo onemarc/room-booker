@@ -115,8 +115,11 @@ export function CalendarGrid({
   isRoomsLoading,
   isScheduleLoading,
   scheduleError,
+  canBook,
   showRoomSelector,
+  minimumCapacity,
   onSelectRoom,
+  onMinimumCapacityChange,
   onNavigatePeriod,
   onRetrySchedule,
     onOpenBooking,
@@ -351,12 +354,15 @@ export function CalendarGrid({
         timeZone={timeZone}
         showRoomSelector={showRoomSelector}
         isRoomsLoading={isRoomsLoading}
+        minimumCapacity={minimumCapacity}
+        canBook={canBook}
         onSelectRoom={onSelectRoom}
+        onMinimumCapacityChange={onMinimumCapacityChange}
         onOpenBooking={onOpenBooking}
       />
 
       <div
-        className="flex min-h-0 flex-1 flex-col overflow-auto [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] 
+        className="flex min-h-0 flex-1 touch-pan-x touch-pan-y flex-col overflow-auto overscroll-contain [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin]
                   [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2
                   [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding"
         onWheel={handleWheel}
@@ -434,7 +440,7 @@ export function CalendarGrid({
                       .join(" ")}
                     key={`${date}-${row.officeTime}`}
                     type="button"
-                    disabled={isPastSlot}
+                    disabled={isPastSlot || !canBook}
                     aria-label={`Select ${formatCalendarDay(date, {
                       weekday: "long",
                       month: "long",
