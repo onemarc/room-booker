@@ -13,7 +13,12 @@ export const metadata = {
   title: "Calendar",
 };
 
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ confirmation?: string }>;
+}) {
+  const requestedConfirmation = (await searchParams).confirmation;
   const user = await requirePageUser();
   const now = new Date();
   const initialActiveDate = getZonedDateIso(now, OFFICE_TIME_ZONE);
@@ -42,6 +47,13 @@ export default async function CalendarPage() {
   return (
     <CalendarShell
       displayName={user.displayName}
+      emailConfirmed={user.emailConfirmed}
+      confirmationStatus={
+        requestedConfirmation === "success" ||
+        requestedConfirmation === "invalid"
+          ? requestedConfirmation
+          : null
+      }
       initialNow={serializeUtcInstant(now)}
       initialActiveDate={initialActiveDate}
       initialRooms={initialRooms}
