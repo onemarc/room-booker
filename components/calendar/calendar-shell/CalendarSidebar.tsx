@@ -7,7 +7,8 @@ const SIDEBAR_CLASS = [
   "flex w-[clamp(260px,23vw,304px)] min-w-[260px] flex-none flex-col",
   "overflow-hidden border-r border-[var(--line)] bg-[#f8faf8]",
   "max-[1060px]:w-[250px] max-[1060px]:min-w-[250px]",
-  "max-[760px]:w-[min(86vw,290px)] max-[760px]:min-w-[min(86vw,290px)]",
+  "max-[760px]:fixed max-[760px]:inset-y-0 max-[760px]:left-0 max-[760px]:z-60",
+  "max-[760px]:w-[min(88vw,310px)] max-[760px]:min-w-0 max-[760px]:shadow-[18px_0_50px_rgba(24,39,30,0.2)]",
 ].join(" ");
 
 const MENU_BUTTON_CLASS = [
@@ -24,11 +25,13 @@ type CalendarSidebarProps = {
   selectedRoomId: string;
   isLoading: boolean;
   error: string;
+  minimumCapacity: number;
   onClose: () => void;
   onSelectDate: (date: string) => void;
   onVisibleMonthChange: (month: string) => void;
   onSelectRoom: (roomId: string) => void;
   onRetry: () => void;
+  onMinimumCapacityChange: (value: number) => void;
 };
 
 // The sidebar is presentation-only: room data and navigation state are owned
@@ -41,11 +44,13 @@ export function CalendarSidebar({
   selectedRoomId,
   isLoading,
   error,
+  minimumCapacity,
   onClose,
   onSelectDate,
   onVisibleMonthChange,
   onSelectRoom,
   onRetry,
+  onMinimumCapacityChange,
 }: CalendarSidebarProps) {
   return (
     <aside className={SIDEBAR_CLASS}>
@@ -75,8 +80,10 @@ export function CalendarSidebar({
         timeZone={timeZone}
         isLoading={isLoading}
         error={error}
+        minimumCapacity={minimumCapacity}
         onSelectRoom={onSelectRoom}
         onRetry={onRetry}
+        onMinimumCapacityChange={onMinimumCapacityChange}
       />
     </aside>
   );
