@@ -60,18 +60,19 @@ export function CalendarShell({
   const [view, setView] = useState<CalendarView>("week");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [rooms, setRooms] = useState(initialRooms);
+  const [minimumCapacity, setMinimumCapacity] = useState(1);
   const [selectedRoomId, setSelectedRoomId] = useState(
     initialRooms[0]?.id ?? "",
   );
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [roomError, setRoomError] = useState("");
   const [retryVersion, setRetryVersion] = useState(0);
-  const initialRequestKey = `${OFFICE_TIME_ZONE}:${initialActiveDate}`;
+  const initialRequestKey = `${OFFICE_TIME_ZONE}:${initialActiveDate}:1`;
   const loadedRequestKey = useRef(initialRequestKey);
   const activeDate =
     selectedDate ?? getZonedDateIso(initialNow, timeZone);
   const today = getZonedDateIso(new Date(), timeZone);
-  const requestKey = `${timeZone}:${activeDate}`;
+  const requestKey = `${timeZone}:${activeDate}:${minimumCapacity}`;
 
   useEffect(() => {
     if (loadedRequestKey.current === requestKey && retryVersion === 0) {
@@ -88,6 +89,7 @@ export function CalendarShell({
         const searchParams = new URLSearchParams({
           date: activeDate,
           timeZone,
+          minCapacity: String(minimumCapacity),
         });
         const response = await fetch(`/api/rooms?${searchParams}`, {
           signal: controller.signal,
@@ -130,7 +132,7 @@ export function CalendarShell({
 
     void loadRooms();
     return () => controller.abort();
-  }, [activeDate, requestKey, retryVersion, timeZone]);
+  }, [activeDate, minimumCapacity, requestKey, retryVersion, timeZone]);
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.id === selectedRoomId),
@@ -192,8 +194,10 @@ export function CalendarShell({
             timeZone={timeZone}
             isLoading={isRoomsLoading}
             error={roomError}
+            minimumCapacity={minimumCapacity}
             onSelectRoom={setSelectedRoomId}
             onRetry={() => setRetryVersion((current) => current + 1)}
+            onMinimumCapacityChange={setMinimumCapacity}
           />
         </aside>
       ) : null}
