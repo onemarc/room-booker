@@ -1,23 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
-import { formatCalendarDay, formatTimeInZone, getViewDates, getZonedDateIso, getZonedDateTimeParts, localDateTimeToUtc } from "@/lib/time";
+import { useEffect, useMemo, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  CALENDAR_SLOT_MINUTES,
+  calendarDateToIso,
+  formatCalendarDay,
+  formatTimeInZone,
+  getZonedDateIso,
+  getZonedDateTimeParts,
+  localDateTimeToUtc,
+} from "@/lib/time";
 import { getBookingPosition, getOfficeTime, getSelectionBounds, OFFICE_WINDOW_MINUTES, SLOT_COUNT } from "./calendar-grid-utils";
 import { BOOKING_COLOR_STYLES } from "@/components/calendar/booking-colors";
 import { OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { CalendarGridToolbar } from "./CalendarGridToolbar";
+import { CalendarLoadingOverlay } from "./CalendarLoadingOverlay";
+import { CALENDAR_TIME_COLUMN_WIDTH, getCalendarCanvasWidthStyle } from "./calendar-window";
+import { useInfiniteWeekScroll } from "./useInfiniteWeekScroll";
 import { useGridSelection } from "./useGridSelection";
-import type { ScheduleBooking } from "@/lib/bookings";
+import type { BookingColor, ScheduleBooking } from "@/lib/bookings";
 import type { CalendarGridProps } from "./types";
-
-const HORIZONTAL_GESTURE_THRESHOLD = 80;
-const NAVIGATION_LOCK_MILLISECONDS = 450;
 
 function DraftBookingPreview({
   top,
   height,
   time,
   displayName,
+  color: draftColor,
   selection,
   isInteractive,
   opacity = 1,
@@ -28,6 +37,7 @@ function DraftBookingPreview({
   height: number;
   time: string;
   displayName: string;
+  color: BookingColor;
   selection: { date: string; startIndex: number; endIndex: number };
   isInteractive: boolean;
   opacity?: number;
@@ -41,7 +51,7 @@ function DraftBookingPreview({
     edge: "start" | "end",
   ) => void;
 }) {
-  const color = BOOKING_COLOR_STYLES.sage;
+  const color = BOOKING_COLOR_STYLES[draftColor];
   const showTime = height >= 6;
   const showAuthor = height >= 9;
 
@@ -105,7 +115,11 @@ export type { CalendarGridSelection } from "./types";
 
 export function CalendarGrid({
   activeDate,
+  targetDate,
   view,
+  isSidebarOpen,
+  positionRequestId,
+  isViewPositioning,
   timeZone,
   displayName,
   selectedRoom,
@@ -118,28 +132,29 @@ export function CalendarGrid({
   canBook,
   showRoomSelector,
   minimumCapacity,
+  draftColor,
+  previewBookingColor,
   onSelectRoom,
   onMinimumCapacityChange,
-  onNavigatePeriod,
   onRetrySchedule,
     onOpenBooking,
     onCreateSelection,
     onUpdateSelection,
-    onEditBooking,
+  onEditBooking,
   selectedGridSelection,
+  onVisibleRangeChange,
+  onViewPositioned,
 }: CalendarGridProps) {
-  const wheelDeltaRef = useRef(0);
-  const wheelResetTimerRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
-  const navigationUnlockTimerRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
-  const isNavigationLockedRef = useRef(false);
-  const dates = useMemo(
-    () => getViewDates(activeDate, view),
-    [activeDate, view],
-  );
+  const { dates, handleScroll, scrollViewportRef, setDateColumnRef } =
+    useInfiniteWeekScroll({
+      targetDate,
+      isSidebarOpen,
+      positionRequestId,
+      view,
+      isViewPositioning,
+      onVisibleRangeChange,
+      onViewPositioned,
+    });
   const [currentTime, setCurrentTime] = useState<number | null>(null);
   useEffect(() => {
     const updateCurrentTime = () => setCurrentTime(Date.now());
@@ -149,20 +164,26 @@ export function CalendarGrid({
   }, []);
   const today = getZonedDateIso(new Date(), timeZone);
   const rows = useMemo(
-    () =>
-      Array.from({ length: SLOT_COUNT }, (_, index) => {
+    () => {
+      const officeStart = localDateTimeToUtc(
+        dates[0],
+        getOfficeTime(0),
+        OFFICE_TIME_ZONE,
+      );
+
+      return Array.from({ length: SLOT_COUNT }, (_, index) => {
         const officeTime = getOfficeTime(index);
-        const instant = localDateTimeToUtc(
-          dates[0],
-          officeTime,
-          OFFICE_TIME_ZONE,
+        const instant = new Date(
+          officeStart.getTime() +
+            index * CALENDAR_SLOT_MINUTES * 60_000,
         );
 
         return {
           officeTime,
           label: formatTimeInZone(instant, timeZone),
         };
-      }),
+      });
+    },
     [dates, timeZone],
   );
   const pastSlotKeys = useMemo(() => {
@@ -171,11 +192,31 @@ export function CalendarGrid({
       return keys;
     }
 
+    const currentInstant = new Date(currentTime);
+    const currentParts = getZonedDateTimeParts(
+      currentInstant,
+      timeZone,
+    );
+    const currentDate = calendarDateToIso(currentParts);
+    const currentClock = `${String(currentParts.hour).padStart(
+      2,
+      "0",
+    )}:${String(currentParts.minute).padStart(2, "0")}`;
+    const currentMinuteHasElapsed =
+      currentParts.second !== 0 ||
+      currentInstant.getUTCMilliseconds() !== 0;
+
+    // ISO dates and 24-hour labels sort chronologically. Comparing them to a
+    // single zoned snapshot avoids converting every rendered calendar cell
+    // through the timezone/DST resolver during each navigation render.
     for (const date of dates) {
       rows.forEach((row, rowIndex) => {
         if (
-          localDateTimeToUtc(date, row.label, timeZone).getTime() <
-          currentTime
+          date < currentDate ||
+          (date === currentDate &&
+            (row.label < currentClock ||
+              (row.label === currentClock &&
+                currentMinuteHasElapsed)))
         ) {
           keys.add(`${date}:${rowIndex}`);
         }
@@ -211,12 +252,16 @@ export function CalendarGrid({
 
     return grouped;
   }, [bookings, dates, timeZone]);
-  const displayedBookingCount = [...bookingsByDate.values()].reduce(
-    (total, dateBookings) => total + dateBookings.length,
-    0,
-  );
   const gridStyle = {
     "--calendar-columns": dates.length,
+  } as CSSProperties;
+  const gridCanvasStyle = {
+    ...gridStyle,
+    width:
+      view === "week"
+        ? getCalendarCanvasWidthStyle(dates.length)
+        : "100%",
+    minWidth: `${CALENDAR_TIME_COLUMN_WIDTH + 94}px`,
   } as CSSProperties;
   const officeNow = getZonedDateTimeParts(
     new Date(),
@@ -288,61 +333,9 @@ export function CalendarGrid({
     });
   }, [dragSelection, movingDraft, rows, selectedGridSelection, timeZone]);
 
-  useEffect(
-    () => () => {
-      if (wheelResetTimerRef.current) {
-        clearTimeout(wheelResetTimerRef.current);
-      }
-      if (navigationUnlockTimerRef.current) {
-        clearTimeout(navigationUnlockTimerRef.current);
-      }
-    },
-    [],
-  );
-
-
-  function handleWheel(event: WheelEvent<HTMLDivElement>) {
-    const horizontalDelta = event.deltaX;
-    const verticalDelta = event.deltaY;
-
-    if (
-      Math.abs(horizontalDelta) <
-        Math.max(12, Math.abs(verticalDelta) * 1.2) ||
-      isNavigationLockedRef.current
-    ) {
-      return;
-    }
-
-    // Accumulate a horizontal gesture and briefly lock navigation so a single
-    // touchpad swipe cannot advance multiple periods.
-    event.preventDefault();
-    wheelDeltaRef.current += horizontalDelta;
-
-    if (wheelResetTimerRef.current) {
-      clearTimeout(wheelResetTimerRef.current);
-    }
-    wheelResetTimerRef.current = setTimeout(() => {
-      wheelDeltaRef.current = 0;
-    }, 180);
-
-    if (
-      Math.abs(wheelDeltaRef.current) < HORIZONTAL_GESTURE_THRESHOLD
-    ) {
-      return;
-    }
-
-    const direction = wheelDeltaRef.current > 0 ? 1 : -1;
-    wheelDeltaRef.current = 0;
-    isNavigationLockedRef.current = true;
-    onNavigatePeriod(direction);
-    navigationUnlockTimerRef.current = setTimeout(() => {
-      isNavigationLockedRef.current = false;
-    }, NAVIGATION_LOCK_MILLISECONDS);
-  }
-
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       aria-label={`${view === "week" ? "Week" : "Day"} calendar for ${
         selectedRoom?.name ?? "no selected room"
       }`}
@@ -361,15 +354,28 @@ export function CalendarGrid({
         onOpenBooking={onOpenBooking}
       />
 
+      {isViewPositioning ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-[61px] bottom-0 z-20 bg-[var(--surface)]"
+          aria-hidden="true"
+        />
+      ) : null}
+
       <div
-        className="flex min-h-0 flex-1 touch-pan-x touch-pan-y flex-col overflow-auto overscroll-contain [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin]
-                  [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2
-                  [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding"
-        onWheel={handleWheel}
+        className={[
+          "flex min-h-0 flex-1 touch-pan-x touch-pan-y flex-col overflow-auto overscroll-contain [container-type:inline-size] [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin]",
+          "[&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2",
+          "[&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding",
+          isViewPositioning ? "invisible" : "visible",
+        ].join(" ")}
+        ref={scrollViewportRef}
+        onScroll={handleScroll}
+        aria-busy={isViewPositioning || isScheduleLoading}
+        data-calendar-scroll-viewport
       >
         <div
           className="sticky top-0 z-8 grid min-h-[52px] w-full min-w-full flex-none grid-cols-[62px_repeat(var(--calendar-columns),minmax(94px,1fr))] bg-transparent"
-          style={gridStyle}
+          style={gridCanvasStyle}
         >
           <div
             className="sticky left-0 z-9 border-r border-[var(--grid-line)] bg-[linear-gradient(to_bottom,var(--surface)_0_calc(100%_-_6px),transparent_calc(100%_-_6px)_100%)]"
@@ -388,6 +394,8 @@ export function CalendarGrid({
                 .filter(Boolean)
                 .join(" ")}
               key={date}
+              data-calendar-date={date}
+              ref={(element) => setDateColumnRef(date, element)}
             >
               <span>{formatCalendarDay(date, { weekday: "short" })}</span>
               <strong>
@@ -401,7 +409,7 @@ export function CalendarGrid({
 
         <div
           className="relative flex min-h-[560px] min-w-max flex-[1_0_auto] flex-col pb-px"
-          style={gridStyle}
+          style={gridCanvasStyle}
         >
           {rows.map((row, rowIndex) => (
             <div
@@ -410,7 +418,13 @@ export function CalendarGrid({
             >
               <div className="sticky left-0 z-5 border-r border-[var(--grid-line)] bg-[var(--surface)] text-[11px] leading-none text-[#758078]">
                 {rowIndex % 2 === 0 ? (
-                  <span className="absolute top-0 right-[9px] -translate-y-1/2">
+                  <span
+                    className={
+                      rowIndex === 0
+                        ? "absolute top-[7px] right-[9px]"
+                        : "absolute top-0 right-[9px] -translate-y-1/2"
+                    }
+                  >
                     {row.label}
                   </span>
                 ) : null}
@@ -426,7 +440,7 @@ export function CalendarGrid({
                         : dragSelection || movingDraft
                           ? "cursor-grabbing"
                           : "cursor-crosshair",
-                      "touch-pan-y select-none border-0 border-r border-[var(--grid-line)] p-0 outline-none focus-visible:z-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]",
+                      "touch-pan-x touch-pan-y select-none border-0 border-r border-[var(--grid-line)] p-0 outline-none focus-visible:z-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]",
                       rowIndex === 0
                         ? "border-t-0"
                         : rowIndex % 2 === 0
@@ -471,14 +485,18 @@ export function CalendarGrid({
 
           <div
             className="pointer-events-none absolute inset-0 z-4 grid grid-cols-[62px_repeat(var(--calendar-columns),minmax(94px,1fr))]"
-            style={gridStyle}
+            style={gridCanvasStyle}
           >
             <div aria-hidden="true" />
             {dates.map((date) => (
               <div className="relative min-w-0" key={date}>
                 {(bookingsByDate.get(date) ?? []).map(
                   ({ booking, top, height }) => {
-                    const color = BOOKING_COLOR_STYLES[booking.color];
+                    const renderedColor =
+                      previewBookingColor?.bookingId === booking.id
+                        ? previewBookingColor.color
+                        : booking.color;
+                    const color = BOOKING_COLOR_STYLES[renderedColor];
                     const canEdit =
                       booking.isOwner &&
                       new Date(booking.startAt).getTime() > Date.now();
@@ -554,6 +572,7 @@ export function CalendarGrid({
                       height={draftSelection.height}
                       time={draftSelection.time}
                       displayName={displayName}
+                      color={draftColor}
                       selection={draftSelection.selection}
                       isInteractive={
                         !dragSelection && !movingDraft && !draftSelection.isOrigin
@@ -579,49 +598,37 @@ export function CalendarGrid({
           </div>
 
           {isScheduleLoading ? (
-            <div
-              className="pointer-events-none absolute inset-[12px_12px_12px_74px] z-6 grid content-start
-                        gap-3 rounded-xl bg-[rgba(255,255,255,0.68)] p-3 backdrop-blur-[1px]"
-              role="status"
-            >
-              <span className="sr-only">Loading schedule</span>
-              <div className="h-12 w-[28%] animate-pulse rounded-lg bg-[#e5ebe6]" />
-              <div className="ml-[44%] h-16 w-[24%] animate-pulse rounded-lg bg-[#e9eeea]" />
-              <div className="ml-[15%] h-10 w-[21%] animate-pulse rounded-lg bg-[#e5ebe6]" />
-            </div>
-          ) : null}
-
-          {!isScheduleLoading && scheduleError ? (
-            <div className="absolute inset-[18px_18px_18px_80px] z-6 grid place-items-center rounded-xl border
-                            border-dashed border-[#dbd2d2] bg-[rgba(255,250,250,0.94)] p-6 text-center">
-              <div role="alert">
-                <p className="m-0 text-[13px] font-[650] text-[#854242]">
-                  {scheduleError}
-                </p>
-                <button
-                  className="mt-3 h-9 cursor-pointer rounded-lg border border-[#d7c9c9] bg-white px-3 text-xs font-bold text-[#8b3e3e] hover:bg-[#fff6f6]"
-                  type="button"
-                  onClick={onRetrySchedule}
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {!isScheduleLoading &&
-          !scheduleError &&
-          selectedRoom &&
-          displayedBookingCount === 0 ? (
-            <div className="pointer-events-none absolute inset-[18px_18px_18px_80px] z-3 grid place-items-center">
-              <p className="m-0 rounded-xl border border-dashed border-[#d5ddd7] bg-[rgba(250,252,250,0.94)] px-5 py-3 text-center text-xs font-[620] text-[#718078]">
-                No bookings for {selectedRoom.name} in this{" "}
-                {view === "week" ? "week" : "day"}.
-              </p>
-            </div>
+            // Keep the transition layer on the same seven-day canvas as the
+            // active view so the loading state cannot stretch across days.
+            <CalendarLoadingOverlay dates={dates} />
           ) : null}
         </div>
       </div>
+
+      {/* Keep this layer outside the recycled day canvas so the error card is
+          centered in the visible viewport instead of in the full 49-day grid. */}
+      {!isScheduleLoading && scheduleError ? (
+        <div
+          className="absolute inset-x-0 top-[61px] bottom-0 z-30 grid place-items-center bg-[rgba(255,236,236,0.58)] p-4 backdrop-blur-[3px]"
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-[390px] rounded-2xl border border-[#e3a1a1] bg-white p-5 text-center shadow-[0_22px_70px_rgba(70,35,35,0.2)]"
+            role="alert"
+          >
+            <p className="m-0 break-words text-[13px] leading-5 font-[650] text-[#b43737]">
+              {scheduleError}
+            </p>
+            <button
+              className="mt-4 h-9 cursor-pointer rounded-lg border border-[#d78a8a] bg-white px-3.5 text-xs font-bold text-[#b43737] hover:bg-[#fff0f0]"
+              type="button"
+              onClick={onRetrySchedule}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
