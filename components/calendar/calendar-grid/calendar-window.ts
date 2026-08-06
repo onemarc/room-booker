@@ -104,17 +104,14 @@ export function shouldPositionCalendarTarget({
 }
 
 export function shouldCancelCalendarResizeRestore({
-  targetDate,
-  visibleStartDate,
   forcePosition,
 }: {
-  targetDate: string;
-  visibleStartDate: string;
   forcePosition: boolean;
 }) {
-  // A resize restoration is layout-only. Once the shell requests another
-  // date or view, that navigation must win over any queued restoration frame.
-  return forcePosition || targetDate !== visibleStartDate;
+  // Gesture-reported ranges can continue changing during trackpad momentum.
+  // Only an explicit navigation request may replace the protected resize
+  // anchor; passive target-date drift must not cancel it.
+  return forcePosition;
 }
 
 export function getCalendarDayColumnWidth(viewportWidth: number) {
@@ -142,18 +139,29 @@ export function getRenderedCalendarDayColumnWidth({
   );
 }
 
-export function getCalendarCanvasWidthStyle(dayCount: number) {
+export function getCalendarCanvasWidth({
+  dayCount,
+  viewportWidth,
+}: {
+  dayCount: number;
+  viewportWidth: number;
+}) {
   const minimumWidth =
     CALENDAR_TIME_COLUMN_WIDTH +
     dayCount * CALENDAR_MIN_DAY_COLUMN_WIDTH;
-  const viewportScale = dayCount / CALENDAR_VISIBLE_DAY_COUNT;
-  const timeColumnOffset =
-    (viewportScale - 1) * CALENDAR_TIME_COLUMN_WIDTH;
 
-  // Container units let the browser resize all columns in the same layout
-  // pass. A ResizeObserver-driven React update would rebuild the 49-day grid
-  // one frame later, which is visible when the sidebar changes its width.
-  return `max(${minimumWidth}px, calc(${viewportScale * 100}cqw - ${timeColumnOffset}px))`;
+  if (viewportWidth <= 0) {
+    return minimumWidth;
+  }
+
+  // React owns the measured viewport width so opening or closing the sidebar
+  // commits a new canvas size. Exactly seven columns fill the viewport, while
+  // the buffered columns retain the same width for continuous scrolling.
+  return Math.max(
+    minimumWidth,
+    CALENDAR_TIME_COLUMN_WIDTH +
+      dayCount * getCalendarDayColumnWidth(viewportWidth),
+  );
 }
 
 export function getDateScrollLeft({
@@ -176,6 +184,26 @@ export function getCalendarDateColumnScrollLeft(columnOffsetLeft: number) {
   // column position lets CSS stretch the cells without reinterpreting an old
   // pixel offset as a different date.
   return Math.max(0, columnOffsetLeft - CALENDAR_TIME_COLUMN_WIDTH);
+}
+
+export function getCalendarScrollOffsetInDays({
+  scrollLeft,
+  dayColumnWidth,
+}: {
+  scrollLeft: number;
+  dayColumnWidth: number;
+}) {
+  return dayColumnWidth > 0 ? Math.max(0, scrollLeft / dayColumnWidth) : 0;
+}
+
+export function getCalendarScrollLeftForDayOffset({
+  dayOffset,
+  dayColumnWidth,
+}: {
+  dayOffset: number;
+  dayColumnWidth: number;
+}) {
+  return Math.max(0, dayOffset * dayColumnWidth);
 }
 
 export function getVisibleCalendarRange({
