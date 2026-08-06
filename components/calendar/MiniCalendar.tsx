@@ -32,8 +32,10 @@ type MiniCalendarCell = {
   isOutsideMonth: boolean;
 };
 
+// A fixed cell height keeps a selected bold date from changing the week row's
+// layout while the dark selection treatment moves between days.
 const DATE_BUTTON_CLASS =
-  "relative z-[1] grid aspect-square max-h-[31px] w-full cursor-pointer place-items-center rounded-[7px] border-0 text-[11px]";
+  "relative z-[1] grid h-[31px] min-h-[31px] w-full cursor-pointer place-items-center rounded-[7px] border-0 text-[11px]";
 const TODAY_MARKER_CLASS =
   "after:absolute after:right-1/2 after:bottom-[3px] after:size-[3px] after:translate-x-1/2 after:rounded-full after:content-['']";
 
@@ -95,6 +97,8 @@ export const MiniCalendar = memo(function MiniCalendar({
 }: MiniCalendarProps) {
   const [optimisticActiveDate, setOptimisticActiveDate] =
     useState(activeDate);
+  const [optimisticHighlightedRange, setOptimisticHighlightedRange] =
+    useState<{ startDate: string; endDate: string } | null>(null);
   const [isSelectionPending, startSelectionTransition] =
     useTransition();
   const displayedActiveDate = isSelectionPending
@@ -127,8 +131,32 @@ export const MiniCalendar = memo(function MiniCalendar({
   const highlightedRangeStart = visibleRangeStart ?? fallbackWeekStart;
   const highlightedRangeEnd =
     visibleRangeEnd ?? addCalendarDays(fallbackWeekStart, 6);
+  const displayedHighlightedRange =
+    isSelectionPending && optimisticHighlightedRange
+      ? optimisticHighlightedRange
+      : {
+          startDate: highlightedRangeStart,
+          endDate: highlightedRangeEnd,
+        };
   const isAwayFromToday =
     displayedActiveDate !== today || visibleMonth !== todayMonth;
+
+  const getOptimisticHighlightRange = useCallback(
+    (date: string) => {
+      // Day view exposes a one-day range. Preserve that shape; Week view
+      // moves to the complete Monday-Sunday period for a selected date.
+      const isDayRange =
+        visibleRangeStart !== undefined &&
+        visibleRangeStart === visibleRangeEnd;
+      const startDate = isDayRange ? date : getMondayStart(date);
+
+      return {
+        startDate,
+        endDate: isDayRange ? date : addCalendarDays(startDate, 6),
+      };
+    },
+    [visibleRangeEnd, visibleRangeStart],
+  );
 
   const selectDate = useCallback(
     (date: string) => {
@@ -136,9 +164,10 @@ export const MiniCalendar = memo(function MiniCalendar({
       // moves and rebuilds the much larger schedule grid, so it can safely run
       // as a non-urgent transition without making the date button feel stuck.
       setOptimisticActiveDate(date);
+      setOptimisticHighlightedRange(getOptimisticHighlightRange(date));
       startSelectionTransition(() => onSelectDate(date));
     },
-    [onSelectDate],
+    [getOptimisticHighlightRange, onSelectDate],
   );
 
   return (
@@ -165,6 +194,9 @@ export const MiniCalendar = memo(function MiniCalendar({
             tabIndex={isAwayFromToday ? undefined : -1}
             onClick={() => {
               setOptimisticActiveDate(today);
+              setOptimisticHighlightedRange(
+                getOptimisticHighlightRange(today),
+              );
               startSelectionTransition(() => {
                 onSelectDate(today);
                 onVisibleMonthChange(todayMonth);
@@ -216,8 +248,8 @@ export const MiniCalendar = memo(function MiniCalendar({
           const visibleDayIndexes = week.reduce<number[]>(
             (indexes, cell, index) => {
               if (
-                cell.date >= highlightedRangeStart &&
-                cell.date <= highlightedRangeEnd
+                cell.date >= displayedHighlightedRange.startDate &&
+                cell.date <= displayedHighlightedRange.endDate
               ) {
                 indexes.push(index);
               }
@@ -248,8 +280,8 @@ export const MiniCalendar = memo(function MiniCalendar({
                 const isToday = cell.date === today;
                 const isActive = cell.date === displayedActiveDate;
                 const isVisible =
-                  cell.date >= highlightedRangeStart &&
-                  cell.date <= highlightedRangeEnd;
+                  cell.date >= displayedHighlightedRange.startDate &&
+                  cell.date <= displayedHighlightedRange.endDate;
 
                 return (
                   <MiniCalendarDay
