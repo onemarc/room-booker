@@ -86,6 +86,7 @@ export function CalendarShell({
   const [isGridViewPositioning, setIsGridViewPositioning] =
     useState(false);
   const [positionRequestId, setPositionRequestId] = useState(0);
+  const [stopScrollRequestId, setStopScrollRequestId] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [rooms, setRooms] = useState(initialRooms);
   const [minimumCapacity, setMinimumCapacity] = useState(1);
@@ -382,6 +383,7 @@ export function CalendarShell({
     // Header navigation moves the viewport by one complete period. It must not
     // move the independently selected (green) MiniCalendar date.
     setScheduleLoadingMode("blocking");
+    setPositionRequestId((current) => current + 1);
     setGridTargetDate(nextDate);
     setVisibleGridRange({
       startDate: nextDate,
@@ -396,12 +398,19 @@ export function CalendarShell({
   }
 
   function goToToday() {
+    // Today is the only command that cancels active trackpad momentum. Other
+    // navigation and sidebar resizing must leave normal scrolling untouched.
+    setStopScrollRequestId((current) => current + 1);
     selectActiveDate(today);
   }
 
   const selectActiveDate = useCallback(
     (date: string, targetView: CalendarView = view) => {
       setScheduleLoadingMode("blocking");
+      // Date selections are explicit navigation commands. Incrementing the
+      // request makes them win over queued momentum-scroll range updates even
+      // when the requested week is the same as the last positioned target.
+      setPositionRequestId((current) => current + 1);
       setSelectedDate(date);
       const targetDate =
         targetView === "week" ? getMondayStart(date) : date;
@@ -595,6 +604,11 @@ export function CalendarShell({
           periodLabel={periodLabel}
           view={view}
           timeZone={timeZone}
+          rooms={rooms}
+          selectedRoomId={selectedRoomId}
+          isRoomsLoading={isRoomsLoading}
+          minimumCapacity={minimumCapacity}
+          canBook={emailConfirmed}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onToday={goToToday}
           onNavigate={navigatePeriod}
@@ -602,6 +616,13 @@ export function CalendarShell({
           onOpenMyBookings={() => {
             closeBookingEditor();
             setIsMyBookingsOpen(true);
+          }}
+          onSelectRoom={selectRoom}
+          onMinimumCapacityChange={setMinimumCapacity}
+          onOpenBooking={() => {
+            if (!emailConfirmed) return;
+            closeBookingEditor();
+            setIsBookingFormOpen(true);
           }}
         />
         {!emailConfirmed || confirmationStatus === "invalid" ? (
@@ -658,36 +679,23 @@ export function CalendarShell({
           view={view}
           isSidebarOpen={isSidebarOpen}
           positionRequestId={positionRequestId}
+          stopScrollRequestId={stopScrollRequestId}
           isViewPositioning={isGridViewPositioning}
           timeZone={timeZone}
           displayName={displayName}
           selectedRoom={selectedRoom}
-          rooms={rooms}
-          selectedRoomId={selectedRoomId}
           bookings={visibleScheduleBookings}
           draftColor={draftColor}
           previewBookingColor={previewBookingColor}
-          isRoomsLoading={isRoomsLoading}
+          canBook={emailConfirmed}
           isScheduleLoading={scheduleIsTransitioning}
           scheduleError={scheduleError}
-          canBook={emailConfirmed}
-          showRoomSelector={!isSidebarOpen}
-          minimumCapacity={minimumCapacity}
           selectedGridSelection={selectedGridSelection}
-          onSelectRoom={selectRoom}
-          onMinimumCapacityChange={setMinimumCapacity}
           onVisibleRangeChange={syncVisibleRange}
           onViewPositioned={finishGridViewPositioning}
           onRetrySchedule={() => {
             setScheduleLoadingMode("blocking");
             setScheduleRefreshVersion((current) => current + 1);
-          }}
-          onOpenBooking={() => {
-            if (!emailConfirmed) {
-              return;
-            }
-            closeBookingEditor();
-            setIsBookingFormOpen(true);
           }}
           onCreateSelection={({ gridSelection, ...selection }) => {
             setIsBookingFormOpen(false);
