@@ -1,7 +1,8 @@
-import type { ScheduleBooking } from "@/lib/bookings";
+import type { BookingColor, ScheduleBooking } from "@/lib/bookings";
 import type { RoomAvailability } from "@/lib/rooms";
 import type { CalendarView } from "@/lib/time";
 import type { BookingAnchor } from "@/components/calendar/booking-popover/BookingPopover";
+import type { VisibleCalendarRange } from "./calendar-window";
 
 // These contracts keep the interactive grid shell independent from its
 // selection helpers and make the event payloads explicit for parent state.
@@ -35,13 +36,19 @@ export type EditableBookingSelection = {
 
 export type CalendarGridProps = {
   activeDate: string;
+  targetDate: string;
   view: CalendarView;
+  isSidebarOpen: boolean;
+  positionRequestId: number;
+  isViewPositioning: boolean;
   timeZone: string;
   displayName: string;
   selectedRoom?: RoomAvailability;
   rooms: RoomAvailability[];
   selectedRoomId: string;
   bookings: ScheduleBooking[];
+  draftColor: BookingColor;
+  previewBookingColor: { bookingId: string; color: BookingColor } | null;
   isRoomsLoading: boolean;
   isScheduleLoading: boolean;
   scheduleError: string;
@@ -50,7 +57,8 @@ export type CalendarGridProps = {
   minimumCapacity: number;
   onSelectRoom: (roomId: string) => void;
   onMinimumCapacityChange: (value: number) => void;
-  onNavigatePeriod: (direction: -1 | 1) => void;
+  onVisibleRangeChange: (range: VisibleCalendarRange) => void;
+  onViewPositioned: () => void;
   onRetrySchedule: () => void;
   onOpenBooking: () => void;
   onCreateSelection: (selection: BookingSelection) => void;
