@@ -1,4 +1,5 @@
 import { CalendarShell } from "@/components/calendar/calendar-shell/CalendarShell";
+import { getCalendarEventPrefetchPeriodDates } from "@/components/calendar/calendar-grid/calendar-window";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { listRoomSchedule } from "@/lib/server/bookings";
 import { listRoomsWithAvailability } from "@/lib/server/rooms";
@@ -24,20 +25,36 @@ export default async function CalendarPage({
     now,
   });
   const initialRoomId = initialRooms[0]?.id;
-  const initialRange = getPeriodRangeUtc(
-    initialActiveDate,
-    OFFICE_TIME_ZONE,
-    "week",
-  );
+  const initialSchedulePeriodDates = getCalendarEventPrefetchPeriodDates({
+    visibleStartDate: initialActiveDate,
+    visibleEndDate: initialActiveDate,
+  });
   // Match the client's initial schedule signature so it can hydrate with the
   // real first-room schedule without issuing a duplicate request on mount.
   const initialBookings = initialRoomId
-    ? await listRoomSchedule({
-        roomId: initialRoomId,
-        rangeStart: initialRange.start,
-        rangeEnd: initialRange.end,
-        currentUserId: user.id,
-      })
+    ? Array.from(
+        new Map(
+          (
+            await Promise.all(
+              initialSchedulePeriodDates.map(async (periodDate) => {
+                const range = getPeriodRangeUtc(
+                  periodDate,
+                  OFFICE_TIME_ZONE,
+                  "week",
+                );
+                return listRoomSchedule({
+                  roomId: initialRoomId,
+                  rangeStart: range.start,
+                  rangeEnd: range.end,
+                  currentUserId: user.id,
+                });
+              }),
+            )
+          )
+            .flat()
+            .map((booking) => [booking.id, booking] as const),
+        ).values(),
+      )
     : [];
 
   return (
