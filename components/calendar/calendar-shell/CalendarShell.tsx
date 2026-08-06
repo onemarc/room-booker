@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MyBookingsModal } from "@/components/calendar/my-bookings-modal/MyBookingsModal";
 import { BookingFormModal } from "@/components/calendar/booking-form-modal/BookingFormModal";
-import { CalendarGrid, type CalendarGridSelection } from "@/components/calendar/calendar-grid/CalendarGrid";
+import { CalendarGrid, type CalendarGridHandle, type CalendarGridSelection } from "@/components/calendar/calendar-grid/CalendarGrid";
 import { BookingPopover, type BookingEditorTarget } from "@/components/calendar/booking-popover/BookingPopover";
-import { getCalendarViewTransitionTarget, type VisibleCalendarRange } from "@/components/calendar/calendar-grid/calendar-window";
+import { getCalendarEventPrefetchPeriodDates, getCalendarViewTransitionTarget, type VisibleCalendarRange } from "@/components/calendar/calendar-grid/calendar-window";
 import { DEFAULT_BOOKING_COLOR, type BookingColor, type OwnedBooking, type ScheduleBooking, type ScheduleResponse } from "@/lib/bookings";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import {
@@ -88,6 +88,7 @@ export function CalendarShell({
   const [positionRequestId, setPositionRequestId] = useState(0);
   const [stopScrollRequestId, setStopScrollRequestId] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const calendarGridRef = useRef<CalendarGridHandle>(null);
   const [rooms, setRooms] = useState(initialRooms);
   const [minimumCapacity, setMinimumCapacity] = useState(1);
   const [selectedRoomId, setSelectedRoomId] = useState(
@@ -96,16 +97,23 @@ export function CalendarShell({
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [roomError, setRoomError] = useState("");
   const [roomsRefreshVersion, setRoomsRefreshVersion] = useState(0);
+  const initialSchedulePeriodDates = getCalendarEventPrefetchPeriodDates({
+    visibleStartDate: initialActiveDate,
+    visibleEndDate: initialActiveDate,
+  });
   const [scheduleBookings, setScheduleBookings] =
     useState(initialBookings);
   const [scheduleResultKey, setScheduleResultKey] = useState(
-    `${OFFICE_TIME_ZONE}:week:${getMondayStart(initialActiveDate)}:${
+    `${OFFICE_TIME_ZONE}:week:${initialSchedulePeriodDates.join(",")}:${
       initialRooms[0]?.id ?? ""
     }`,
   );
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [scheduleLoadingMode, setScheduleLoadingMode] =
-    useState<ScheduleLoadingMode>("blocking");
+    // The server already supplied the first room's schedule. The browser may
+    // reconcile it with a request using a different display timezone, but
+    // that request must not blank bookings that are already renderable.
+    useState<ScheduleLoadingMode>("background");
   const [scheduleError, setScheduleError] = useState("");
   const [scheduleRefreshVersion, setScheduleRefreshVersion] =
     useState(0);
@@ -131,10 +139,15 @@ export function CalendarShell({
     setSelectedGridSelection(null);
     setDraftColor(DEFAULT_BOOKING_COLOR);
     setPreviewBookingColor(null);
-  }, []);
+  }, [
+    setBookingEditorTarget,
+    setDraftColor,
+    setPreviewBookingColor,
+    setSelectedGridSelection,
+  ]);
   const initialRoomsSignature = `${OFFICE_TIME_ZONE}:${initialActiveDate}:1:0`;
   const loadedRoomsSignature = useRef(initialRoomsSignature);
-  const initialScheduleSignature = `${OFFICE_TIME_ZONE}:week:${getMondayStart(initialActiveDate)}:${
+  const initialScheduleSignature = `${OFFICE_TIME_ZONE}:week:${initialSchedulePeriodDates.join(",")}:${
     initialRooms[0]?.id ?? ""
   }:0`;
   const loadedScheduleSignature = useRef(initialScheduleSignature);
@@ -151,15 +164,10 @@ export function CalendarShell({
       return [gridTargetDate];
     }
 
-    // A seven-day viewport can cross a Monday boundary. Load both intersecting
-    // server weeks so a scrolled Tuesday-to-Monday view never loses Monday's
-    // bookings, while a normal Monday-to-Sunday view remains one request.
-    return Array.from(
-      new Set([
-        getMondayStart(visibleGridRange.startDate),
-        getMondayStart(visibleGridRange.endDate),
-      ]),
-    );
+    return getCalendarEventPrefetchPeriodDates({
+      visibleStartDate: visibleGridRange.startDate,
+      visibleEndDate: visibleGridRange.endDate,
+    });
   }, [gridTargetDate, view, visibleGridRange.endDate, visibleGridRange.startDate]);
   const scheduleRequestKey = `${timeZone}:${view}:${schedulePeriodDates.join(",")}:${selectedRoomId}`;
   const scheduleRequestSignature = `${scheduleRequestKey}:${scheduleRefreshVersion}`;
@@ -425,7 +433,7 @@ export function CalendarShell({
       setVisibleMiniCalendarMonth(startOfCalendarMonth(date));
       closeBookingEditor();
     },
-    [closeBookingEditor, view],
+    [closeBookingEditor, setScheduleLoadingMode, view],
   );
 
   function changeCalendarView(nextView: CalendarView) {
@@ -469,7 +477,13 @@ export function CalendarShell({
         addCalendarDays(range.startDate, view === "week" ? 3 : 0),
       ),
     );
-  }, [view]);
+  }, [
+    setGridTargetDate,
+    setScheduleLoadingMode,
+    setVisibleGridRange,
+    setVisibleMiniCalendarMonth,
+    view,
+  ]);
 
   function selectGridDate(date: string) {
     // Scrolling changes only the pale visible-range highlight. The selected
@@ -483,6 +497,11 @@ export function CalendarShell({
     setSelectedRoomId(roomId);
     closeBookingEditor();
   }
+
+  const toggleSidebar = useCallback((open: boolean) => {
+    calendarGridRef.current?.captureSidebarLayoutAnchor();
+    setIsSidebarOpen(open);
+  }, []);
 
   async function resendConfirmation() {
     setIsResendingConfirmation(true);
@@ -586,7 +605,7 @@ export function CalendarShell({
           isLoading={isRoomsLoading}
           error={roomError}
           minimumCapacity={minimumCapacity}
-          onClose={() => setIsSidebarOpen(false)}
+          onClose={() => toggleSidebar(false)}
           onSelectDate={selectActiveDate}
           onVisibleMonthChange={setVisibleMiniCalendarMonth}
           onSelectRoom={selectRoom}
@@ -609,7 +628,7 @@ export function CalendarShell({
           isRoomsLoading={isRoomsLoading}
           minimumCapacity={minimumCapacity}
           canBook={emailConfirmed}
-          onOpenSidebar={() => setIsSidebarOpen(true)}
+          onOpenSidebar={() => toggleSidebar(true)}
           onToday={goToToday}
           onNavigate={navigatePeriod}
           onChangeView={changeCalendarView}
@@ -674,6 +693,7 @@ export function CalendarShell({
         ) : null}
 
         <CalendarGrid
+          ref={calendarGridRef}
           activeDate={activeDate}
           targetDate={gridTargetDate}
           view={view}
