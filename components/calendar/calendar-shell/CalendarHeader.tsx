@@ -1,11 +1,14 @@
+import { FaDoorOpen } from "react-icons/fa6";
 import { FiChevronLeft, FiChevronRight, FiMenu } from "react-icons/fi";
 import { LogoutButton } from "@/components/LogoutButton";
+import { RoomSelector } from "@/components/calendar/RoomSelector";
 import { NotificationBell } from "@/components/calendar/NotificationBell";
+import type { RoomAvailability } from "@/lib/rooms";
 import type { CalendarView } from "@/lib/time";
 
 const HEADER_CLASS = [
   "z-30 flex min-h-[58px] flex-none items-center justify-between",
-  "gap-[18px] border-b border-[var(--line)] bg-[var(--surface)] px-[13px]",
+  "gap-[18px] bg-[var(--surface)] px-[13px]",
   "max-[1060px]:gap-2 max-[1060px]:px-2",
   "max-[760px]:min-h-[98px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-1 max-[760px]:py-1.5",
 ].join(" ");
@@ -48,11 +51,19 @@ type CalendarHeaderProps = {
   periodLabel: string;
   view: CalendarView;
   timeZone: string;
+  rooms: RoomAvailability[];
+  selectedRoomId: string;
+  isRoomsLoading: boolean;
+  minimumCapacity: number;
+  canBook: boolean;
   onOpenSidebar: () => void;
   onToday: () => void;
   onNavigate: (direction: -1 | 1) => void;
   onChangeView: (view: CalendarView) => void;
   onOpenMyBookings: () => void;
+  onSelectRoom: (roomId: string) => void;
+  onMinimumCapacityChange: (value: number) => void;
+  onOpenBooking: () => void;
 };
 
 // Header controls delegate every state transition to CalendarShell, keeping
@@ -63,11 +74,19 @@ export function CalendarHeader({
   periodLabel,
   view,
   timeZone,
+  rooms,
+  selectedRoomId,
+  isRoomsLoading,
+  minimumCapacity,
+  canBook,
   onOpenSidebar,
   onToday,
   onNavigate,
   onChangeView,
   onOpenMyBookings,
+  onSelectRoom,
+  onMinimumCapacityChange,
+  onOpenBooking,
 }: CalendarHeaderProps) {
   return (
     <header className={HEADER_CLASS}>
@@ -82,21 +101,32 @@ export function CalendarHeader({
             >
               <FiMenu aria-hidden="true" />
             </button>
-            <span className="whitespace-nowrap text-base font-[710] tracking-[-0.02em] text-[#202923]">
-              Room Booker
-            </span>
-            <span
-              className="h-[23px] w-px flex-none bg-[#d7ddd8]"
-              aria-hidden="true"
-            />
           </>
         ) : null}
         <strong className="overflow-hidden text-[17px] font-[680] text-ellipsis whitespace-nowrap text-[#2d3731]">
           {periodLabel}
         </strong>
+        {!isSidebarOpen ? (
+          <>
+            <span className="mx-1 h-[23px] w-px flex-none bg-[#d7ddd8]" aria-hidden="true" />
+            <RoomSelector
+              rooms={rooms}
+              selectedRoomId={selectedRoomId}
+              timeZone={timeZone}
+              isLoading={isRoomsLoading}
+              minimumCapacity={minimumCapacity}
+              onSelectRoom={onSelectRoom}
+              onMinimumCapacityChange={onMinimumCapacityChange}
+            />
+          </>
+        ) : null}
       </div>
 
       <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1060px]:gap-[3px] max-[760px]:w-full max-[760px]:pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <span className="whitespace-nowrap text-[11px] text-[#778179]">
+          GMT+3
+        </span>
+        <span className="h-[23px] w-px flex-none bg-[#d7ddd8]" aria-hidden="true" />
         <button className={TEXT_BUTTON_CLASS} type="button" onClick={onToday}>
           Today
         </button>
@@ -144,6 +174,15 @@ export function CalendarHeader({
           onClick={onOpenMyBookings}
         >
           My Bookings
+        </button>
+        <button
+          className="flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
+          type="button"
+          disabled={!selectedRoomId || !canBook}
+          title={canBook ? "Create a booking" : "Confirm your email before booking"}
+          onClick={onOpenBooking}
+        >
+          <FaDoorOpen aria-hidden="true" /> Book room
         </button>
         <span
           className="h-[23px] w-px flex-none bg-[#d7ddd8]"
