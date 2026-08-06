@@ -72,7 +72,7 @@ export function CalendarSidebarSkeleton({
 export function CalendarHeaderSkeleton() {
   return (
     <div
-      className="flex min-h-[58px] flex-none items-center justify-between gap-[18px] border-b border-[var(--line)] bg-[var(--surface)] px-[13px] max-[1060px]:min-h-[58px] max-[1060px]:gap-2 max-[1060px]:px-2 max-[760px]:min-h-[98px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-1 max-[760px]:py-1.5"
+      className="flex min-h-[58px] flex-none items-center justify-between gap-[18px] bg-[var(--surface)] px-[13px] max-[1060px]:min-h-[58px] max-[1060px]:gap-2 max-[1060px]:px-2 max-[760px]:min-h-[98px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-1 max-[760px]:py-1.5"
       aria-hidden="true"
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -112,20 +112,20 @@ export function CalendarGridSkeleton({ overlay }: { overlay?: ReactNode }) {
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden" aria-hidden={!overlay}>
       <div className="flex min-h-0 h-full flex-col overflow-auto overscroll-contain [scrollbar-width:thin]">
-        <div className="sticky top-0 z-8 grid min-h-[52px] w-full min-w-[720px] flex-none grid-cols-[62px_repeat(7,minmax(94px,1fr))] bg-[var(--surface)]">
+        <div className="sticky top-0 z-8 grid min-h-[92px] w-full min-w-[720px] flex-none grid-cols-[62px_repeat(7,minmax(94px,1fr))] bg-[var(--surface)]">
           <div className="border-r border-[var(--grid-line)]" />
           {PLACEHOLDER_DAYS.map((day, dayIndex) => (
             <div
-              className="flex min-w-0 items-center justify-center gap-1.5 border-r border-b border-[var(--grid-line)] bg-[var(--surface)]"
+              className="flex min-w-0 flex-col items-center justify-center gap-2 border-r border-b border-[var(--grid-line)] bg-[var(--surface)]"
               key={day}
             >
-              <SkeletonBlock className="h-3 w-7 rounded-sm" />
               <SkeletonBlock
                 className={[
-                  "size-6 rounded-md",
+                  "h-10 w-14 rounded-md",
                   dayIndex === 2 ? "bg-[#b8cdbd]" : "",
                 ].join(" ")}
               />
+              <SkeletonBlock className="h-5 w-10 rounded-sm" />
             </div>
           ))}
         </div>
