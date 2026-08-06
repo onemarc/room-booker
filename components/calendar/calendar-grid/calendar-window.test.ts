@@ -6,9 +6,11 @@ import {
   getCalendarCanvasWidth,
   getCalendarDateColumnScrollLeft,
   getCalendarDayColumnWidth,
+  getCalendarEventPrefetchPeriodDates,
   getCalendarScrollLeftForDayOffset,
   getCalendarScrollOffsetInDays,
   getRenderedCalendarDayColumnWidth,
+  getResponsiveCalendarCanvasWidth,
   getCalendarViewTransitionTarget,
   getCalendarWindowDates,
   getCalendarWindowShiftDirection,
@@ -27,6 +29,23 @@ test("the calendar window keeps three weeks on each side of the active week", ()
   assert.equal(windowStart, "2026-07-13");
   assert.equal(dates.length, CALENDAR_WINDOW_DAY_COUNT);
   assert.equal(dates.at(-1), "2026-08-30");
+});
+
+test("event prefetch keeps two adjacent schedule weeks ready", () => {
+  assert.deepEqual(
+    getCalendarEventPrefetchPeriodDates({
+      visibleStartDate: "2026-08-03",
+      visibleEndDate: "2026-08-09",
+    }),
+    ["2026-08-03", "2026-08-10"],
+  );
+  assert.deepEqual(
+    getCalendarEventPrefetchPeriodDates({
+      visibleStartDate: "2026-08-05",
+      visibleEndDate: "2026-08-11",
+    }),
+    ["2026-08-03", "2026-08-10"],
+  );
 });
 
 test("a distant Day target gets the correct Week window on its first render", () => {
@@ -126,6 +145,10 @@ test("the measured week canvas keeps physical horizontal overflow", () => {
       viewportWidth: 0,
     }),
     4668,
+  );
+  assert.equal(
+    getResponsiveCalendarCanvasWidth(CALENDAR_WINDOW_DAY_COUNT),
+    "max(4668px, calc(700% - 372px))",
   );
 });
 
