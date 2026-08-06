@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { FiChevronDown } from "react-icons/fi";
 import { RoomSummary } from "@/components/calendar/RoomSummary";
 import type { RoomAvailability } from "@/lib/rooms";
@@ -124,11 +118,11 @@ export function RoomSelector({
 
   return (
     <div
-      className="relative w-fit min-w-0 max-w-[220px]"
+      className="relative w-fit min-w-0 max-w-[240px]"
       ref={rootRef}
     >
       <button
-        className="flex min-h-12 w-auto cursor-pointer items-center justify-start gap-3 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-[13px] font-[670] text-[#36433a] transition-colors duration-120 hover:bg-[#eef2ef] focus-visible:bg-[#eef2ef] aria-expanded:bg-[#eef2ef] [&>svg]:size-[15px] [&>svg]:flex-none"
+        className="group flex min-h-12 w-auto cursor-pointer items-center justify-start gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-[#36433a] transition-colors duration-150 hover:bg-[#f0f3f0] focus-visible:bg-[#f0f3f0] aria-expanded:bg-[#edf2ee]"
         type="button"
         ref={triggerRef}
         aria-haspopup="listbox"
@@ -140,13 +134,14 @@ export function RoomSelector({
         }
         onKeyDown={handleTriggerKeyDown}
       >
-        <span className="grid min-w-0 flex-[0_1_auto] gap-px text-left">
-          <strong className="overflow-hidden text-[13px] font-bold text-ellipsis whitespace-nowrap text-[#29352e]">
+        <span className="grid min-w-0 flex-[0_1_auto] gap-0.5 text-left">
+          <strong className="overflow-hidden text-[13px] font-[720] text-ellipsis whitespace-nowrap text-[#263129]">
             {selectedRoom?.name ?? "No rooms"}
           </strong>
           {selectedRoom ? (
-            <small className="overflow-hidden text-[11px] font-normal text-ellipsis whitespace-nowrap text-[#778179]">
-              Floor {selectedRoom.floor} · {selectedRoom.capacity} people
+            <small className="overflow-hidden text-[10px] font-normal tracking-[0.01em] text-ellipsis whitespace-nowrap text-[#7b857d]">
+              Floor {selectedRoom.floor} · {selectedRoom.capacity}{" "}
+              {selectedRoom.capacity === 1 ? "seat" : "seats"}
             </small>
           ) : null}
         </span>
@@ -156,29 +151,42 @@ export function RoomSelector({
             aria-label="Updating rooms"
           />
         ) : (
-          <FiChevronDown aria-hidden="true" />
+          <span className="grid size-6 flex-none place-items-center rounded-full bg-[#e8ede9] text-[#667169] transition-transform group-aria-expanded:rotate-180 [&>svg]:size-3.5">
+            <FiChevronDown aria-hidden="true" />
+          </span>
         )}
       </button>
 
       {isOpen ? (
         <div
-          className="absolute top-[calc(100%+9px)] left-0 z-100 grid max-h-[min(430px,calc(100vh-90px))] w-[min(350px,calc(100vw-28px))] gap-[7px] overflow-y-auto rounded-[13px] border border-[#d1d9d2] bg-[var(--surface)] p-2 shadow-[0_18px_48px_rgba(28,43,34,0.16)] [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding"
-          id={listId}
-          role="listbox"
-          aria-label="Select a room"
+          className="absolute top-[calc(100%+9px)] left-0 z-100 w-[min(360px,calc(100vw-28px))] overflow-hidden rounded-[14px] border border-[#d5ddd6] bg-[var(--surface)] shadow-[0_20px_55px_rgba(28,43,34,0.16)]"
         >
-          {rooms.map((room, index) => {
-            const isSelected = room.id === selectedRoomId;
+          <div className="flex items-baseline justify-between border-b border-[#e4e9e5] px-3.5 py-2.5">
+            <span className="text-xs font-[700] text-[#2c3730]">
+              Choose a room
+            </span>
+            <span className="text-[10px] text-[#8a938c]">
+              {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
+            </span>
+          </div>
+          <div
+            className="max-h-[min(430px,calc(100vh-140px))] overflow-y-auto [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding"
+            id={listId}
+            role="listbox"
+            aria-label="Select a room"
+          >
+            {rooms.map((room, index) => {
+              const isSelected = room.id === selectedRoomId;
 
             return (
               <button
                 className={[
-                  "w-full cursor-pointer rounded-[11px] border px-[11px] py-2.5 text-left text-[#303a34]",
+                  "flex w-full cursor-pointer items-start gap-3 border-b border-[#e7ebe7] px-3.5 py-3 text-left text-[#303a34] transition-colors duration-150 last:border-b-0",
                   isSelected
-                    ? "border-[#4e8068] bg-[var(--accent-soft)] shadow-[inset_3px_0_0_var(--accent)] hover:border-[#4e8068] hover:bg-[var(--accent-soft)]"
+                    ? "bg-[#edf3ef]"
                     : index === activeIndex
-                    ? "border-[#aebbb1] bg-[#f7faf8]"
-                    : "border-[#d5dbd6] bg-[var(--surface)] hover:border-[#aebbb1] hover:bg-[#f7faf8]",
+                      ? "bg-[#f5f8f6]"
+                      : "bg-transparent hover:bg-[#f5f8f6]",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -202,7 +210,8 @@ export function RoomSelector({
                 <RoomSummary room={room} timeZone={timeZone} />
               </button>
             );
-          })}
+            })}
+          </div>
         </div>
       ) : null}
     </div>
