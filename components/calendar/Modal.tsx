@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { FiX } from "react-icons/fi";
 
 export function Modal({
@@ -21,7 +16,7 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
-  size?: "medium" | "large";
+  size?: "small" | "medium" | "large";
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -104,8 +99,12 @@ export function Modal({
     >
       <div
         className={[
-          "relative flex max-h-[min(88vh,820px)] w-full flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_28px_80px_rgba(20,35,26,0.26)]",
-          size === "large" ? "max-w-[920px]" : "max-w-[590px]",
+          "relative flex max-h-[min(92vh,860px)] w-full flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_28px_80px_rgba(20,35,26,0.26)]",
+          size === "large"
+            ? "max-w-[920px]"
+            : size === "small"
+              ? "max-w-[420px]"
+              : "max-w-[590px]",
         ].join(" ")}
         ref={panelRef}
         role="dialog"
