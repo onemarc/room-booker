@@ -58,7 +58,7 @@ export function CalendarSidebar({
 }: CalendarSidebarProps) {
   return (
     <aside className={SIDEBAR_CLASS}>
-      <div className="flex min-h-[58px] items-center gap-2.5 border-b border-[var(--line)] px-3.5">
+      <div className="flex min-h-[58px] items-center gap-2.5 px-3.5">
         <button
           className={MENU_BUTTON_CLASS}
           type="button"
