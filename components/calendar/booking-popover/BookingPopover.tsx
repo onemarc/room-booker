@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { FaRegTrashCan } from "react-icons/fa6";
 import { FiX } from "react-icons/fi";
 import { DEFAULT_BOOKING_COLOR, type BookingColor, type BookingFieldErrors, type CreateBookingResponse, type ScheduleBooking } from "@/lib/bookings";
 import { formatCalendarDay, formatTimeInZone, getZonedDateIso } from "@/lib/time";
+import { Modal } from "@/components/calendar/Modal";
 import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
+import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
 import { FieldError, getBookingTimeOptions } from "@/components/calendar/shared/booking-form-utils";
 
 export type BookingAnchor = {
@@ -37,6 +40,8 @@ export function BookingPopover({
   timeZone,
   onClose,
   onSaved,
+  onDeleted,
+  onColorChange,
 }: {
   target: BookingEditorTarget;
   timeZone: string;
@@ -45,6 +50,8 @@ export function BookingPopover({
     booking: ScheduleBooking;
     mode: BookingEditorTarget["mode"];
   }) => void;
+  onDeleted: (bookingId: string) => void;
+  onColorChange: (color: BookingColor) => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
@@ -67,6 +74,7 @@ export function BookingPopover({
   const [endTime, setEndTime] = useState(
     formatTimeInZone(sourceEndAt, timeZone),
   );
+  const [hasEditedTimes, setHasEditedTimes] = useState(false);
   const [color, setColor] = useState<BookingColor>(
     sourceBooking?.color ?? DEFAULT_BOOKING_COLOR,
   );
@@ -75,16 +83,38 @@ export function BookingPopover({
     useState<BookingFieldErrors>({});
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
+    useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const timeOptions = useMemo(
     () => getBookingTimeOptions(startDate, timeZone),
     [startDate, timeZone],
   );
-  const startOptions = timeOptions.includes(startTime)
+  const movingStartTime =
+    target.mode === "create"
+      ? formatTimeInZone(target.startAt, timeZone)
+      : startTime;
+  const movingEndTime =
+    target.mode === "create"
+      ? formatTimeInZone(target.endAt, timeZone)
+      : endTime;
+  const displayedStartTime = hasEditedTimes ? startTime : movingStartTime;
+  const displayedEndTime = hasEditedTimes ? endTime : movingEndTime;
+  const startOptions = timeOptions.includes(displayedStartTime)
     ? timeOptions
-    : [startTime, ...timeOptions].sort();
-  const endOptions = timeOptions.includes(endTime)
+    : [displayedStartTime, ...timeOptions].sort();
+  const endOptions = timeOptions.includes(displayedEndTime)
     ? timeOptions
-    : [endTime, ...timeOptions].sort();
+    : [displayedEndTime, ...timeOptions].sort();
+  const startSelectOptions = startOptions.map((time) => ({
+    value: time,
+    label: time,
+  }));
+  const endSelectOptions = endOptions.map((time) => ({
+    value: time,
+    label: time,
+  }));
   const viewportWidth =
     typeof window === "undefined" ? 1280 : window.innerWidth;
   const viewportHeight =
@@ -98,7 +128,7 @@ export function BookingPopover({
   // near the bottom/right edge create an unreachable form.
   const top = Math.max(
     12,
-    Math.min(target.anchor.top, viewportHeight - 540),
+    Math.min(target.anchor.top, viewportHeight - 662),
   );
 
   useEffect(() => {
@@ -123,6 +153,12 @@ export function BookingPopover({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
+      // Let the nested confirmation dialog consume Escape without closing the
+      // booking editor underneath it.
+      if (event.key === "Escape" && isDeleteConfirmationOpen) {
+        return;
+      }
+
       if (event.key === "Escape" && !isSubmittingRef.current) {
         event.preventDefault();
         onClose();
@@ -138,7 +174,7 @@ export function BookingPopover({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [isDeleteConfirmationOpen, onClose]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,8 +203,8 @@ export function BookingPopover({
           title,
           date: startDate,
           endDate: initialEndDate,
-          startTime,
-          endTime,
+          startTime: displayedStartTime,
+          endTime: displayedEndTime,
           color,
           ...(isEdit ? {} : { recurrenceCount }),
           timeZone,
@@ -196,6 +232,49 @@ export function BookingPopover({
     }
   }
 
+  async function handleDelete() {
+    if (target.mode !== "edit" || isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      const response = await fetch(
+        `/api/bookings/${encodeURIComponent(target.booking.id)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: "{}",
+        },
+      );
+      const data = (await response.json()) as {
+        error?: { message?: string };
+      };
+
+      if (!response.ok) {
+        setDeleteError(
+          data.error?.message ?? "The booking could not be deleted.",
+        );
+        return;
+      }
+
+      onDeleted(target.booking.id);
+    } catch {
+      setDeleteError(
+        "The booking service is unavailable. Check your connection and try again.",
+      );
+    } finally {
+      isSubmittingRef.current = false;
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div
       className="fixed z-90 w-[340px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[15px] border border-[#cfd8d1] bg-white shadow-[0_20px_60px_rgba(24,39,30,0.22)]"
@@ -219,19 +298,37 @@ export function BookingPopover({
             })}
           </span>
         </div>
-        <button
-          className="grid size-7 flex-none cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#667169] hover:bg-[#eef2ef] [&>svg]:size-4"
-          type="button"
-          aria-label="Close booking editor"
-          disabled={isSubmitting}
-          onClick={onClose}
-        >
-          <FiX aria-hidden="true" />
-        </button>
+        <div className="flex flex-none items-center gap-1">
+          {target.mode === "edit" ? (
+            <button
+              className="grid size-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#9a4a4a] hover:bg-[#fff0f0] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
+              type="button"
+              aria-label={isDeleting ? "Deleting booking" : "Delete booking"}
+              title={isDeleting ? "Deleting booking" : "Delete booking"}
+              aria-busy={isDeleting}
+              disabled={isSubmitting}
+              onClick={() => {
+                setDeleteError("");
+                setIsDeleteConfirmationOpen(true);
+              }}
+            >
+              <FaRegTrashCan aria-hidden="true" />
+            </button>
+          ) : null}
+          <button
+            className="grid size-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#667169] hover:bg-[#eef2ef] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
+            type="button"
+            aria-label="Close booking editor"
+            disabled={isSubmitting}
+            onClick={onClose}
+          >
+            <FiX aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <form
-        className="grid max-h-[calc(100vh-110px)] gap-3.5 overflow-y-auto px-4 py-4"
+        className="grid max-h-[calc(100vh-32px)] gap-3.5 overflow-y-auto px-4 py-4"
         onSubmit={handleSubmit}
       >
         {formError ? (
@@ -259,45 +356,41 @@ export function BookingPopover({
         </label>
 
         <div className="grid grid-cols-2 gap-2.5">
-          <label className="grid gap-1 text-xs font-[650] text-[#3a463e]">
-            Start
-            <select
-              className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-2.5 text-[13px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
-              value={startTime}
-              aria-invalid={Boolean(fieldErrors.startTime)}
-              onChange={(event) => setStartTime(event.target.value)}
-            >
-              {startOptions.map((time) => (
-                <option value={time} key={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
+          <div className="grid gap-1.5 text-sm font-[650] text-[#3a463e]">
+            <span>Start</span>
+            <BookingSelect
+              ariaLabel="Start time"
+              value={displayedStartTime}
+              options={startSelectOptions}
+              isInvalid={Boolean(fieldErrors.startTime)}
+              onChange={(value) => {
+                setHasEditedTimes(true);
+                setStartTime(value);
+              }}
+            />
             <FieldError message={fieldErrors.startTime} className="text-[11px]" />
-          </label>
-          <label className="grid gap-1 text-xs font-[650] text-[#3a463e]">
-            End
-            <select
-              className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-2.5 text-[13px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
-              value={endTime}
-              aria-invalid={Boolean(fieldErrors.endTime)}
-              onChange={(event) => setEndTime(event.target.value)}
-            >
-              {endOptions.map((time) => (
-                <option value={time} key={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
+          </div>
+          <div className="grid gap-1.5 text-sm font-[650] text-[#3a463e]">
+            <span>End</span>
+            <BookingSelect
+              ariaLabel="End time"
+              value={displayedEndTime}
+              options={endSelectOptions}
+              isInvalid={Boolean(fieldErrors.endTime)}
+              onChange={(value) => {
+                setHasEditedTimes(true);
+                setEndTime(value);
+              }}
+            />
             <FieldError message={fieldErrors.endTime} className="text-[11px]" />
-          </label>
+          </div>
         </div>
 
-        <fieldset className="m-0 grid gap-2 border-0 p-0">
+        <fieldset className="m-0 grid gap-3 border-0 p-0">
           <legend className="p-0 text-xs font-[650] text-[#3a463e]">
             Color
           </legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {BOOKING_COLOR_OPTIONS.map((option) => (
               <button
                 className="grid size-7 cursor-pointer place-items-center rounded-full border-2 transition-transform hover:scale-105"
@@ -315,7 +408,10 @@ export function BookingPopover({
                       ? `0 0 0 2px white, 0 0 0 4px ${option.border}`
                       : "none",
                 }}
-                onClick={() => setColor(option.value)}
+                onClick={() => {
+                  setColor(option.value);
+                  onColorChange(option.value);
+                }}
               >
                 <span
                   className="size-2 rounded-full"
@@ -373,6 +469,54 @@ export function BookingPopover({
           </button>
         </div>
       </form>
+      {isDeleteConfirmationOpen ? (
+        <Modal
+          title="Delete booking?"
+          description="This action cannot be undone."
+          size="small"
+          closeDisabled={isDeleting}
+          onClose={() => setIsDeleteConfirmationOpen(false)}
+        >
+          <div className="grid gap-4 px-6 py-5 max-[640px]:px-4">
+            <p className="m-0 text-sm leading-5 text-[#4f5b53]">
+              Delete the booking{" "}
+              <strong className="font-[700] text-[#263129]">
+                {target.mode === "edit" && target.booking.title
+                  ? `“${target.booking.title}”`
+                  : "“(No title)”"}
+              </strong>
+              ?
+            </p>
+            {deleteError ? (
+              <p
+                className="m-0 rounded-lg border border-[#ebcece] bg-[#fff8f8] px-3 py-2 text-sm leading-5 text-[#8d3d3d]"
+                role="alert"
+              >
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-4">
+              <button
+                className="h-10 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-4 text-sm font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                data-autofocus
+                disabled={isDeleting}
+                onClick={() => setIsDeleteConfirmationOpen(false)}
+              >
+                Keep booking
+              </button>
+              <button
+                className="h-10 cursor-pointer rounded-lg border border-[#9c3d3d] bg-[#9c3d3d] px-4 text-sm font-[680] text-white hover:bg-[#873434] disabled:cursor-wait disabled:opacity-55"
+                type="button"
+                disabled={isDeleting}
+                onClick={() => void handleDelete()}
+              >
+                {isDeleting ? "Deleting…" : "Delete booking"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }
