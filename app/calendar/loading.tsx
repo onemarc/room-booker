@@ -2,7 +2,6 @@ import {
   CalendarGridSkeleton,
   CalendarHeaderSkeleton,
   CalendarSidebarSkeleton,
-  CalendarToolbarSkeleton,
 } from "@/components/calendar/CalendarSurfaceSkeleton";
 
 export default function CalendarLoading() {
@@ -16,7 +15,6 @@ export default function CalendarLoading() {
       <CalendarSidebarSkeleton />
       <section className="flex min-w-0 flex-1 flex-col">
         <CalendarHeaderSkeleton />
-        <CalendarToolbarSkeleton />
         <CalendarGridSkeleton />
       </section>
     </main>
