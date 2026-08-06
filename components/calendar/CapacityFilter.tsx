@@ -116,7 +116,6 @@ export function CapacityFilter({
     <div
       className={[
         "relative flex min-w-0 items-center gap-1.5 text-xs font-[620] text-[#657168]",
-        compact ? "max-[880px]:sr-only" : "",
         !compact
           ? "max-[1060px]:flex-1 max-[1060px]:justify-between"
           : "",
