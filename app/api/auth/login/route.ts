@@ -1,21 +1,8 @@
 import { validateLoginInput } from "@/lib/server/auth-validation";
-import {
-  handleRouteError,
-  HttpError,
-  jsonResponse,
-} from "@/lib/server/http";
-import {
-  verifyAgainstDummyPassword,
-  verifyPassword,
-} from "@/lib/server/password";
-import {
-  assertStateChangingRequest,
-  readJsonObject,
-} from "@/lib/server/request-security";
-import {
-  assertSessionConfiguration,
-  createSession,
-} from "@/lib/server/session";
+import { handleRouteError, HttpError, jsonResponse } from "@/lib/server/http";
+import { verifyAgainstDummyPassword, verifyPassword } from "@/lib/server/password";
+import { assertStateChangingRequest, readJsonObject } from "@/lib/server/request-security";
+import { assertSessionConfiguration, createSession } from "@/lib/server/session";
 import { findUserForAuthentication } from "@/lib/server/users";
 
 export const runtime = "nodejs";

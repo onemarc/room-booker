@@ -1,12 +1,5 @@
-import {
-  listPastBookings,
-  listUpcomingBookings,
-} from "@/lib/server/bookings";
-import {
-  handleRouteError,
-  HttpError,
-  jsonResponse,
-} from "@/lib/server/http";
+import { listPastBookings, listUpcomingBookings } from "@/lib/server/bookings";
+import { handleRouteError, HttpError, jsonResponse } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";

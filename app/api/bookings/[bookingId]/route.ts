@@ -1,16 +1,6 @@
-import {
-  cancelUpcomingBooking,
-  updateUpcomingBooking,
-} from "@/lib/server/bookings";
-import {
-  handleRouteError,
-  HttpError,
-  jsonResponse,
-} from "@/lib/server/http";
-import {
-  assertStateChangingRequest,
-  readJsonObject,
-} from "@/lib/server/request-security";
+import { cancelUpcomingBooking, updateUpcomingBooking } from "@/lib/server/bookings";
+import { handleRouteError, HttpError, jsonResponse } from "@/lib/server/http";
+import { assertStateChangingRequest, readJsonObject } from "@/lib/server/request-security";
 import { requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";

@@ -1,9 +1,5 @@
 import { reissueEmailConfirmation } from "@/lib/server/email-confirmation";
-import {
-  handleRouteError,
-  HttpError,
-  jsonResponse,
-} from "@/lib/server/http";
+import { handleRouteError, HttpError, jsonResponse } from "@/lib/server/http";
 import { assertStateChangingRequest } from "@/lib/server/request-security";
 import { requireUser } from "@/lib/server/session";
 

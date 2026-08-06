@@ -1,24 +1,10 @@
 import { validateRegistrationInput } from "@/lib/server/auth-validation";
-import {
-  handleRouteError,
-  HttpError,
-  isPostgresUniqueViolation,
-  jsonResponse,
-} from "@/lib/server/http";
+import { handleRouteError, HttpError, isPostgresUniqueViolation, jsonResponse } from "@/lib/server/http";
 import { hashPassword } from "@/lib/server/password";
-import {
-  assertStateChangingRequest,
-  readJsonObject,
-} from "@/lib/server/request-security";
-import {
-  assertSessionConfiguration,
-  createSession,
-} from "@/lib/server/session";
+import { assertStateChangingRequest, readJsonObject } from "@/lib/server/request-security";
+import { assertSessionConfiguration, createSession } from "@/lib/server/session";
 import { createUser } from "@/lib/server/users";
-import {
-  isEmailConfirmationRequired,
-  issueEmailConfirmation,
-} from "@/lib/server/email-confirmation";
+import { isEmailConfirmationRequired, issueEmailConfirmation } from "@/lib/server/email-confirmation";
 
 export const runtime = "nodejs";
 

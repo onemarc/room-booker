@@ -1,16 +1,6 @@
-import {
-  handleRouteError,
-  HttpError,
-  jsonResponse,
-} from "@/lib/server/http";
-import {
-  createBooking,
-  listRoomSchedule,
-} from "@/lib/server/bookings";
-import {
-  assertStateChangingRequest,
-  readJsonObject,
-} from "@/lib/server/request-security";
+import { handleRouteError, HttpError, jsonResponse } from "@/lib/server/http";
+import { createBooking, listRoomSchedule } from "@/lib/server/bookings";
+import { assertStateChangingRequest, readJsonObject } from "@/lib/server/request-security";
 import { requireUser } from "@/lib/server/session";
 import {
   canonicalizeTimeZone,

@@ -1,7 +1,4 @@
-import {
-  handleRouteError,
-  jsonResponse,
-} from "@/lib/server/http";
+import { handleRouteError, jsonResponse } from "@/lib/server/http";
 import { materializeAndListNotifications } from "@/lib/server/notifications";
 import { assertStateChangingRequest } from "@/lib/server/request-security";
 import { requireUser } from "@/lib/server/session";

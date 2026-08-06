@@ -1,14 +1,7 @@
-import {
-  handleRouteError,
-  HttpError,
-  jsonResponse,
-} from "@/lib/server/http";
+import { handleRouteError, HttpError, jsonResponse } from "@/lib/server/http";
 import { listRoomsWithAvailability } from "@/lib/server/rooms";
 import { requireUser } from "@/lib/server/session";
-import {
-  canonicalizeTimeZone,
-  parseCalendarDate,
-} from "@/lib/time";
+import { canonicalizeTimeZone, parseCalendarDate } from "@/lib/time";
 
 export const runtime = "nodejs";
 

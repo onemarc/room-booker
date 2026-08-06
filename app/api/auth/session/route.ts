@@ -1,7 +1,4 @@
-import {
-  handleRouteError,
-  jsonResponse,
-} from "@/lib/server/http";
+import { handleRouteError, jsonResponse } from "@/lib/server/http";
 import { requireUser } from "@/lib/server/session";
 
 export const runtime = "nodejs";
