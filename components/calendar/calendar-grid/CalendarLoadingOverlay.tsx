@@ -26,21 +26,27 @@ export function CalendarLoadingOverlay({
   return (
     <div
       className="pointer-events-none absolute inset-0 z-6 grid grid-cols-[62px_repeat(var(--calendar-columns),minmax(94px,1fr))]
-                bg-[rgba(255,255,255,0.88)] backdrop-blur-[3px]"
+                bg-[rgba(255,255,255,0.76)] backdrop-blur-[2px]"
       style={gridStyle}
       role="status"
     >
       <span className="sr-only">{label}</span>
-      <div aria-hidden="true" />
+      <div
+        className="border-r border-[var(--grid-line)] bg-[rgba(255,255,255,0.9)]"
+        aria-hidden="true"
+      />
       {dates.map((date, dayIndex) => (
-        <div className="relative min-w-0" key={date}>
+        <div
+          className="relative min-w-0 border-r border-[var(--grid-line)] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_27px,var(--grid-line)_27px,var(--grid-line)_28px)]"
+          key={date}
+        >
           {LOADING_GHOST_BOOKINGS.filter(
             // Repeat the weekday pattern across recycled windows so the
             // visible week always has representative event shapes.
             (booking) => booking.day === dayIndex % 7,
           ).map((booking) => (
             <div
-              className="absolute rounded-[7px] border border-[#d4e0d7] bg-[#edf3ef] p-2 shadow-[0_2px_8px_rgba(34,53,42,0.08)]"
+              className="absolute animate-pulse rounded-[7px] border border-[#d4e0d7] bg-[#edf3ef] p-2 shadow-[0_2px_8px_rgba(34,53,42,0.08)] motion-reduce:animate-none"
               key={`${date}:${booking.top}`}
               style={{
                 top: booking.top,
@@ -50,10 +56,10 @@ export function CalendarLoadingOverlay({
               }}
             >
               <div
-                className="h-2.5 animate-pulse rounded-sm bg-[#cbded0]"
+                className="h-2.5 rounded-sm bg-[#cbded0]"
                 style={{ width: `${Math.max(42, booking.width - 18)}%` }}
               />
-              <div className="mt-1 h-2 w-1/2 animate-pulse rounded-sm bg-[#d8e5da]" />
+              <div className="mt-1 h-2 w-1/2 rounded-sm bg-[#d8e5da]" />
             </div>
           ))}
         </div>

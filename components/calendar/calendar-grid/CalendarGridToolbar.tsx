@@ -45,7 +45,9 @@ export function CalendarGridToolbar({
             selectedRoomId={selectedRoomId}
             timeZone={timeZone}
             isLoading={isRoomsLoading}
+            minimumCapacity={minimumCapacity}
             onSelectRoom={onSelectRoom}
+            onMinimumCapacityChange={onMinimumCapacityChange}
           /> :
           <strong className="text-[13px] font-bold text-[#29352e]">
             {selectedRoom?.name ?? "Select a room"}
