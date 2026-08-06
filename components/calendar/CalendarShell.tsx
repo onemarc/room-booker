@@ -1,17 +1,7 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiMenu,
-} from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { FiChevronLeft, FiChevronRight, FiMenu } from "react-icons/fi";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { MiniCalendar } from "@/components/calendar/MiniCalendar";
 import { RoomList } from "@/components/calendar/RoomList";

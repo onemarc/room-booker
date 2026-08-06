@@ -2,11 +2,7 @@
 
 import { useMemo, type CSSProperties } from "react";
 import { RoomSelector } from "@/components/calendar/RoomSelector";
-import {
-  OFFICE_CLOSE_HOUR,
-  OFFICE_OPEN_HOUR,
-  OFFICE_TIME_ZONE,
-} from "@/lib/office.mjs";
+import { OFFICE_CLOSE_HOUR, OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import type { RoomAvailability } from "@/lib/rooms";
 import {
   CALENDAR_SLOT_MINUTES,

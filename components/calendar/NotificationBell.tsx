@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FiBell, FiX } from "react-icons/fi";
-import type {
-  BookingEndNotification,
-  NotificationsResponse,
-} from "@/lib/notifications";
 import { formatUtcInstant } from "@/lib/time";
+import type { BookingEndNotification, NotificationsResponse } from "@/lib/notifications";
 
 const POLL_INTERVAL_MILLISECONDS = 30_000;
 
