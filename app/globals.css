@@ -55,12 +55,58 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+/* Shared modal keyframes and entry classes used by the mounted dialog surfaces. */
+@keyframes modal-overlay-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-panel-appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes booking-tab-panel-appear {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-overlay-enter {
+  animation: modal-overlay-appear 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.modal-panel-enter {
+  animation: modal-panel-appear 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.booking-tab-panel-enter {
+  animation: booking-tab-panel-appear 180ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Keep state changes immediate for users who request reduced motion. */
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
