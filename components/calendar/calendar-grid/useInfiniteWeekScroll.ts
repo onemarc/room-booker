@@ -7,6 +7,8 @@ import {
   CALENDAR_WINDOW_SHIFT_DAYS,
   getCalendarDateColumnScrollLeft,
   getCalendarDayColumnWidth,
+  getCalendarScrollLeftForDayOffset,
+  getCalendarScrollOffsetInDays,
   getRenderedCalendarDayColumnWidth,
   getCalendarWindowDates,
   getCalendarWindowShiftDirection,
@@ -19,10 +21,13 @@ import {
   type VisibleCalendarRange,
 } from "./calendar-window";
 
+const MOMENTUM_STOP_SETTLE_DELAY_MS = 160;
+
 export function useInfiniteWeekScroll({
   targetDate,
   isSidebarOpen,
   positionRequestId,
+  stopScrollRequestId,
   view,
   isViewPositioning,
   onVisibleRangeChange,
@@ -31,6 +36,7 @@ export function useInfiniteWeekScroll({
   targetDate: string;
   isSidebarOpen: boolean;
   positionRequestId: number;
+  stopScrollRequestId: number;
   view: CalendarView;
   isViewPositioning: boolean;
   onVisibleRangeChange: (range: VisibleCalendarRange) => void;
@@ -39,6 +45,7 @@ export function useInfiniteWeekScroll({
   const [windowStart, setWindowStart] = useState(() =>
     getCalendarWindowStart(targetDate),
   );
+  const [viewportWidth, setViewportWidth] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const windowResetFrameRef = useRef<number | null>(null);
@@ -46,6 +53,7 @@ export function useInfiniteWeekScroll({
   const viewRevealPaintFrameRef = useRef<number | null>(null);
   const layoutRestoreFrameRef = useRef<number | null>(null);
   const layoutRestorePaintFrameRef = useRef<number | null>(null);
+  const momentumStopSettleTimerRef = useRef<number | null>(null);
   const pendingScrollAdjustmentDaysRef = useRef(0);
   const shouldPositionImmediatelyRef = useRef(true);
   const isShiftingWindowRef = useRef(false);
@@ -53,10 +61,13 @@ export function useInfiniteWeekScroll({
   const lastPositionedTargetRef = useRef<string | null>(null);
   const previousSidebarOpenRef = useRef(isSidebarOpen);
   const previousPositionRequestIdRef = useRef(positionRequestId);
+  const previousStopScrollRequestIdRef = useRef(stopScrollRequestId);
   const previousViewRef = useRef(view);
   const previousDayColumnWidthRef = useRef<number | null>(null);
   const dateColumnRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutAnchorDateRef = useRef<string | null>(null);
+  const layoutAnchorDayOffsetRef = useRef<number | null>(null);
+  const momentumStopAnchorDateRef = useRef<string | null>(null);
   const lastVisibleRangeRef = useRef<VisibleCalendarRange>({
     startDate: targetDate,
     endDate: addCalendarDays(targetDate, CALENDAR_VISIBLE_DAY_COUNT - 1),
@@ -130,11 +141,43 @@ export function useInfiniteWeekScroll({
       } else {
         viewport.scrollTo({ left, behavior });
       }
-      previousDayColumnWidthRef.current = dayColumnWidth;
+      // Do not acknowledge a new width here. During a sidebar toggle the date
+      // element can still expose its pre-reflow offset even though scrollWidth
+      // already changed. ResizeObserver owns the settled-width update so it
+      // always performs the final rendered-column alignment without requiring
+      // a follow-up user scroll.
       return left;
     },
     [getDateColumnLeft, measureDayColumnWidth],
   );
+
+  const positionLayoutAnchor = useCallback(
+    (
+      viewport: HTMLDivElement,
+      anchorDate: string,
+      anchorDayOffset: number | null,
+    ) => {
+      if (anchorDayOffset === null) {
+        positionDateColumn(viewport, anchorDate);
+        return;
+      }
+
+      viewport.scrollLeft = getCalendarScrollLeftForDayOffset({
+        dayOffset: anchorDayOffset,
+        dayColumnWidth: measureDayColumnWidth(viewport),
+      });
+    },
+    [measureDayColumnWidth, positionDateColumn],
+  );
+
+  const syncViewportWidth = useCallback((viewport: HTMLDivElement) => {
+    const nextWidth = viewport.clientWidth;
+    setViewportWidth((currentWidth) =>
+      Math.abs(currentWidth - nextWidth) >= 0.5
+        ? nextWidth
+        : currentWidth,
+    );
+  }, []);
 
   const cancelLayoutRestore = useCallback(() => {
     if (layoutRestoreFrameRef.current !== null) {
@@ -146,37 +189,83 @@ export function useInfiniteWeekScroll({
       layoutRestorePaintFrameRef.current = null;
     }
     layoutAnchorDateRef.current = null;
+    layoutAnchorDayOffsetRef.current = null;
     isRestoringLayoutRef.current = false;
   }, []);
 
+  const cancelMomentumStop = useCallback(() => {
+    if (momentumStopSettleTimerRef.current !== null) {
+      window.clearTimeout(momentumStopSettleTimerRef.current);
+      momentumStopSettleTimerRef.current = null;
+    }
+    momentumStopAnchorDateRef.current = null;
+  }, []);
+
+  const releaseMomentumStopAfterScrollSettles = useCallback(
+    (anchorDate: string) => {
+      if (momentumStopSettleTimerRef.current !== null) {
+        window.clearTimeout(momentumStopSettleTimerRef.current);
+      }
+
+      // Today is allowed to cancel trackpad momentum. Release that one-purpose
+      // lock as soon as residual events have been quiet for a short interval.
+      momentumStopSettleTimerRef.current = window.setTimeout(() => {
+        momentumStopSettleTimerRef.current = null;
+        if (momentumStopAnchorDateRef.current !== anchorDate) {
+          return;
+        }
+        momentumStopAnchorDateRef.current = null;
+      }, MOMENTUM_STOP_SETTLE_DELAY_MS);
+    },
+    [],
+  );
+
   const restoreDateAfterLayout = useCallback(
-    (viewport: HTMLDivElement, anchorDate: string) => {
+    (
+      viewport: HTMLDivElement,
+      anchorDate: string,
+      anchorDayOffset: number | null = null,
+    ) => {
       cancelLayoutRestore();
       layoutAnchorDateRef.current = anchorDate;
+      layoutAnchorDayOffsetRef.current = anchorDayOffset;
       isRestoringLayoutRef.current = true;
-      positionDateColumn(viewport, anchorDate);
+      positionLayoutAnchor(viewport, anchorDate, anchorDayOffset);
 
-      // Container-query units can settle after React's layout effects. Align
-      // from the rendered date again on the next layout and paint frames.
+      // The first call can still observe the previous React canvas width. Align
+      // from the rendered date again after the new layout and paint settle.
       layoutRestoreFrameRef.current = requestAnimationFrame(() => {
         layoutRestoreFrameRef.current = null;
         const settledViewport = scrollViewportRef.current;
         if (!settledViewport || layoutAnchorDateRef.current !== anchorDate) {
+          cancelLayoutRestore();
           return;
         }
-        positionDateColumn(settledViewport, anchorDate);
+        positionLayoutAnchor(settledViewport, anchorDate, anchorDayOffset);
         layoutRestorePaintFrameRef.current = requestAnimationFrame(() => {
           layoutRestorePaintFrameRef.current = null;
           const paintedViewport = scrollViewportRef.current;
           if (paintedViewport && layoutAnchorDateRef.current === anchorDate) {
-            positionDateColumn(paintedViewport, anchorDate);
+            positionLayoutAnchor(paintedViewport, anchorDate, anchorDayOffset);
+            // The React-sized canvas and its date columns are now committed.
+            // Record this settled width so the next genuine user scroll is not
+            // mistaken for another resize and snapped back to the anchor.
+            previousDayColumnWidthRef.current =
+              measureDayColumnWidth(paintedViewport);
+            layoutAnchorDateRef.current = null;
+            layoutAnchorDayOffsetRef.current = null;
+            isRestoringLayoutRef.current = false;
+          } else {
+            cancelLayoutRestore();
           }
-          layoutAnchorDateRef.current = null;
-          isRestoringLayoutRef.current = false;
         });
       });
     },
-    [cancelLayoutRestore, positionDateColumn],
+    [
+      cancelLayoutRestore,
+      measureDayColumnWidth,
+      positionLayoutAnchor,
+    ],
   );
 
   const reportVisibleRange = useCallback(
@@ -218,8 +307,22 @@ export function useInfiniteWeekScroll({
     }
 
     const preserveVisibleDate = () => {
+      syncViewportWidth(viewport);
       const nextWidth = measureDayColumnWidth(viewport);
       const previousWidth = previousDayColumnWidthRef.current;
+
+      // Recycling changes the rendered date nodes but not their width. Any
+      // restore scheduled by the same layout pass belongs to the old window;
+      // letting it run after compensation reinterprets the current scrollLeft
+      // as the old date offset and jumps several weeks ahead.
+      if (
+        isShiftingWindowRef.current ||
+        pendingScrollAdjustmentDaysRef.current !== 0
+      ) {
+        cancelLayoutRestore();
+        previousDayColumnWidthRef.current = nextWidth;
+        return;
+      }
 
       if (
         previousWidth !== null &&
@@ -250,9 +353,16 @@ export function useInfiniteWeekScroll({
         lastPositionedTargetRef.current =
           lastVisibleRangeRef.current.startDate;
         lastReportedRangeKeyRef.current = `${lastVisibleRangeRef.current.startDate}:${lastVisibleRangeRef.current.endDate}`;
+        const anchorDayOffset =
+          layoutAnchorDayOffsetRef.current ??
+          getCalendarScrollOffsetInDays({
+            scrollLeft: viewport.scrollLeft,
+            dayColumnWidth: previousWidth,
+          });
         restoreDateAfterLayout(
           viewport,
           lastVisibleRangeRef.current.startDate,
+          anchorDayOffset,
         );
       }
 
@@ -264,12 +374,47 @@ export function useInfiniteWeekScroll({
     preserveVisibleDate();
     return () => resizeObserver.disconnect();
   }, [
+    cancelLayoutRestore,
     isViewPositioning,
     measureDayColumnWidth,
     restoreDateAfterLayout,
     resolvedWindowStart,
+    syncViewportWidth,
     view,
   ]);
+
+  useLayoutEffect(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport || view !== "week" || viewportWidth <= 0) {
+      return;
+    }
+
+    // `restoreDateAfterLayout` changes identity when the recycled window's
+    // start date changes. That dependency update is not a viewport resize;
+    // re-running the resize restore here would undo the pending two-week
+    // compensation and make one day of input appear to skip whole weeks.
+    if (
+      isShiftingWindowRef.current ||
+      pendingScrollAdjustmentDaysRef.current !== 0
+    ) {
+      return;
+    }
+
+    // The measured width is React state, so this runs after the stretched
+    // canvas is committed. Re-anchor the same rendered date before paint.
+    const anchorDate = lastVisibleRangeRef.current.startDate;
+    const currentDayColumnWidth =
+      previousDayColumnWidthRef.current ?? measureDayColumnWidth(viewport);
+    const anchorDayOffset =
+      layoutAnchorDayOffsetRef.current ??
+      getCalendarScrollOffsetInDays({
+        scrollLeft: viewport.scrollLeft,
+        dayColumnWidth: currentDayColumnWidth,
+      });
+    lastPositionedTargetRef.current = anchorDate;
+    lastReportedRangeKeyRef.current = `${anchorDate}:${lastVisibleRangeRef.current.endDate}`;
+    restoreDateAfterLayout(viewport, anchorDate, anchorDayOffset);
+  }, [measureDayColumnWidth, restoreDateAfterLayout, view, viewportWidth]);
 
   useLayoutEffect(() => {
     const viewport = scrollViewportRef.current;
@@ -281,8 +426,8 @@ export function useInfiniteWeekScroll({
       return;
     }
 
-    // Sidebar visibility changes are layout-only. Re-anchor the rendered start
-    // date while CSS stretches the same columns to the new available width.
+    // Sidebar visibility changes are layout-only. Preserve the exact fractional
+    // day offset while the same columns stretch to the new available width.
     if (scrollFrameRef.current !== null) {
       cancelAnimationFrame(scrollFrameRef.current);
       scrollFrameRef.current = null;
@@ -303,12 +448,29 @@ export function useInfiniteWeekScroll({
     lastPositionedTargetRef.current =
       lastVisibleRangeRef.current.startDate;
     lastReportedRangeKeyRef.current = `${lastVisibleRangeRef.current.startDate}:${lastVisibleRangeRef.current.endDate}`;
-    restoreDateAfterLayout(viewport, lastVisibleRangeRef.current.startDate);
+    const currentDayColumnWidth =
+      previousDayColumnWidthRef.current ?? measureDayColumnWidth(viewport);
+    const anchorDayOffset =
+      layoutAnchorDayOffsetRef.current ??
+      getCalendarScrollOffsetInDays({
+        scrollLeft: viewport.scrollLeft,
+        dayColumnWidth: currentDayColumnWidth,
+      });
+    // Reading and storing the new flex width schedules a synchronous React
+    // render; the width effect above performs the final date alignment.
+    syncViewportWidth(viewport);
+    restoreDateAfterLayout(
+      viewport,
+      lastVisibleRangeRef.current.startDate,
+      anchorDayOffset,
+    );
   }, [
     isSidebarOpen,
     isViewPositioning,
+    measureDayColumnWidth,
     restoreDateAfterLayout,
     resolvedWindowStart,
+    syncViewportWidth,
     view,
   ]);
 
@@ -346,6 +508,7 @@ export function useInfiniteWeekScroll({
       shouldPositionImmediatelyRef.current = true;
       lastPositionedTargetRef.current = null;
       previousDayColumnWidthRef.current = null;
+      previousStopScrollRequestIdRef.current = stopScrollRequestId;
       previousViewRef.current = view;
       reportVisibleRange(viewport);
       return;
@@ -354,7 +517,10 @@ export function useInfiniteWeekScroll({
     const enteredWeekView = previousViewRef.current !== "week";
     const hasExplicitPositionRequest =
       previousPositionRequestIdRef.current !== positionRequestId;
+    const shouldStopMomentum =
+      previousStopScrollRequestIdRef.current !== stopScrollRequestId;
     previousPositionRequestIdRef.current = positionRequestId;
+    previousStopScrollRequestIdRef.current = stopScrollRequestId;
     previousViewRef.current = view;
     const dayColumnWidth = measureDayColumnWidth(viewport);
     const forcePosition =
@@ -363,14 +529,12 @@ export function useInfiniteWeekScroll({
     if (
       isRestoringLayoutRef.current &&
       shouldCancelCalendarResizeRestore({
-        targetDate,
-        visibleStartDate: lastVisibleRangeRef.current.startDate,
         forcePosition,
       })
     ) {
       // Previous/Next, Today, MiniCalendar, and view changes can arrive before
-      // the sidebar's two-frame resize guard settles. Cancel that guard now so
-      // its old offset cannot overwrite the requested date on the next frame.
+      // the sidebar's render-time restore finishes. The explicit navigation
+      // request must replace that old layout anchor.
       cancelLayoutRestore();
     }
 
@@ -378,8 +542,14 @@ export function useInfiniteWeekScroll({
       // The render already uses the target's centered window. Persist it before
       // paint so switching back from a distant Day view never shows old dates.
       shouldPositionImmediatelyRef.current = true;
-      pendingScrollAdjustmentDaysRef.current = 0;
-      isShiftingWindowRef.current = false;
+      // A window recycle also renders through this branch for one commit while
+      // the shell adopts the newly visible range. Keep its pending compensation
+      // intact; clearing it here leaves the viewport at the old pixel offset and
+      // causes every subsequent scroll frame to recycle another full fortnight.
+      if (!isShiftingWindowRef.current) {
+        pendingScrollAdjustmentDaysRef.current = 0;
+        isShiftingWindowRef.current = false;
+      }
       if (windowResetFrameRef.current === null) {
         windowResetFrameRef.current = requestAnimationFrame(() => {
           windowResetFrameRef.current = null;
@@ -394,13 +564,32 @@ export function useInfiniteWeekScroll({
       // browser paints or any ResizeObserver anchoring can preserve stale days.
       pendingScrollAdjustmentDaysRef.current = 0;
       isShiftingWindowRef.current = false;
+      cancelMomentumStop();
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+      if (viewRevealFrameRef.current !== null) {
+        cancelAnimationFrame(viewRevealFrameRef.current);
+        viewRevealFrameRef.current = null;
+      }
+      if (viewRevealPaintFrameRef.current !== null) {
+        cancelAnimationFrame(viewRevealPaintFrameRef.current);
+        viewRevealPaintFrameRef.current = null;
+      }
       const positionTarget = (
         targetViewport: HTMLDivElement,
       ) => {
         positionDateColumn(targetViewport, targetDate);
       };
 
-      positionTarget(viewport);
+      if (shouldStopMomentum) {
+        momentumStopAnchorDateRef.current = targetDate;
+      }
+      restoreDateAfterLayout(viewport, targetDate);
+      if (shouldStopMomentum) {
+        releaseMomentumStopAfterScrollSettles(targetDate);
+      }
       shouldPositionImmediatelyRef.current = false;
       lastPositionedTargetRef.current = targetDate;
       // CalendarShell already owns this requested range. Do not let an
@@ -459,6 +648,10 @@ export function useInfiniteWeekScroll({
       restoreDateAfterLayout(
         viewport,
         lastVisibleRangeRef.current.startDate,
+        getCalendarScrollOffsetInDays({
+          scrollLeft: viewport.scrollLeft,
+          dayColumnWidth: previousDayColumnWidth,
+        }),
       );
       lastPositionedTargetRef.current =
         lastVisibleRangeRef.current.startDate;
@@ -495,13 +688,16 @@ export function useInfiniteWeekScroll({
   }, [
     reportVisibleRange,
     resolvedWindowStart,
+    cancelMomentumStop,
     cancelLayoutRestore,
     isViewPositioning,
     measureDayColumnWidth,
     onViewPositioned,
     positionDateColumn,
     positionRequestId,
+    releaseMomentumStopAfterScrollSettles,
     restoreDateAfterLayout,
+    stopScrollRequestId,
     targetDate,
     view,
     windowNeedsReset,
@@ -527,21 +723,72 @@ export function useInfiniteWeekScroll({
       if (layoutRestorePaintFrameRef.current !== null) {
         cancelAnimationFrame(layoutRestorePaintFrameRef.current);
       }
+      if (momentumStopSettleTimerRef.current !== null) {
+        window.clearTimeout(momentumStopSettleTimerRef.current);
+      }
     },
     [],
   );
 
+  useEffect(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport || view !== "week") {
+      return;
+    }
+
+    const stopResidualWheelMomentum = (event: WheelEvent) => {
+      const anchorDate = momentumStopAnchorDateRef.current;
+      if (!anchorDate) {
+        return;
+      }
+
+      // A non-passive listener is intentional here: after Today is clicked,
+      // remaining trackpad wheel events must not move the viewport away from
+      // that date before their momentum naturally ends.
+      event.preventDefault();
+      positionDateColumn(viewport, anchorDate);
+      releaseMomentumStopAfterScrollSettles(anchorDate);
+    };
+
+    viewport.addEventListener("wheel", stopResidualWheelMomentum, {
+      passive: false,
+    });
+    return () =>
+      viewport.removeEventListener("wheel", stopResidualWheelMomentum);
+  }, [positionDateColumn, releaseMomentumStopAfterScrollSettles, view]);
+
   const handleScroll = useCallback(
     (event: ReactUIEvent<HTMLDivElement>) => {
-      if (
-        view !== "week" ||
-        isViewPositioning ||
-        scrollFrameRef.current !== null
-      ) {
+      if (view !== "week") {
         return;
       }
 
       const viewport = event.currentTarget;
+      const momentumStopAnchorDate = momentumStopAnchorDateRef.current;
+      if (momentumStopAnchorDate) {
+        positionDateColumn(viewport, momentumStopAnchorDate);
+        releaseMomentumStopAfterScrollSettles(momentumStopAnchorDate);
+        return;
+      }
+
+      if (isRestoringLayoutRef.current) {
+        // Ignore only the browser-generated scroll caused by the two-frame
+        // sidebar reflow. This state never blocks normal wheel input afterward.
+        const anchorDate =
+          layoutAnchorDateRef.current ??
+          lastVisibleRangeRef.current.startDate;
+        positionLayoutAnchor(
+          viewport,
+          anchorDate,
+          layoutAnchorDayOffsetRef.current,
+        );
+        return;
+      }
+
+      if (isViewPositioning || scrollFrameRef.current !== null) {
+        return;
+      }
+
       scrollFrameRef.current = requestAnimationFrame(() => {
         scrollFrameRef.current = null;
         const dayColumnWidth = measureDayColumnWidth(viewport);
@@ -551,10 +798,13 @@ export function useInfiniteWeekScroll({
         if (isRestoringLayoutRef.current) {
           // Ignore the browser-generated scroll event from the resize. It must
           // never be mistaken for a horizontal navigation gesture.
-          positionDateColumn(
-            viewport,
+          const anchorDate =
             layoutAnchorDateRef.current ??
-              lastVisibleRangeRef.current.startDate,
+            lastVisibleRangeRef.current.startDate;
+          positionLayoutAnchor(
+            viewport,
+            anchorDate,
+            layoutAnchorDayOffsetRef.current,
           );
           return;
         }
@@ -569,6 +819,10 @@ export function useInfiniteWeekScroll({
           restoreDateAfterLayout(
             viewport,
             lastVisibleRangeRef.current.startDate,
+            getCalendarScrollOffsetInDays({
+              scrollLeft: viewport.scrollLeft,
+              dayColumnWidth: previousDayColumnWidth,
+            }),
           );
           lastPositionedTargetRef.current =
             lastVisibleRangeRef.current.startDate;
@@ -592,6 +846,7 @@ export function useInfiniteWeekScroll({
 
         // Recycle two off-screen weeks and compensate scrollLeft after React
         // commits, preserving the exact dates beneath a moving pointer/gesture.
+        cancelLayoutRestore();
         isShiftingWindowRef.current = true;
         pendingScrollAdjustmentDaysRef.current =
           -shiftDirection * CALENDAR_WINDOW_SHIFT_DAYS;
@@ -603,9 +858,12 @@ export function useInfiniteWeekScroll({
         );
       });
     }, [
+      cancelLayoutRestore,
       isViewPositioning,
       measureDayColumnWidth,
+      positionLayoutAnchor,
       positionDateColumn,
+      releaseMomentumStopAfterScrollSettles,
       reportVisibleRange,
       resolvedWindowStart,
       restoreDateAfterLayout,
@@ -618,5 +876,6 @@ export function useInfiniteWeekScroll({
     handleScroll,
     scrollViewportRef,
     setDateColumnRef,
+    viewportWidth,
   };
 }
