@@ -6,7 +6,6 @@ import {
   CalendarGridSkeleton,
   CalendarHeaderSkeleton,
   CalendarSidebarSkeleton,
-  CalendarToolbarSkeleton,
 } from "@/components/calendar/CalendarSurfaceSkeleton";
 import { StatePanel } from "@/components/ui/AsyncState";
 
@@ -28,7 +27,6 @@ export default function CalendarError({
       <CalendarSidebarSkeleton className="hidden min-[760px]:flex" />
       <section className="flex min-w-0 flex-1 flex-col">
         <CalendarHeaderSkeleton />
-        <CalendarToolbarSkeleton />
         <CalendarGridSkeleton
           overlay={
             <StatePanel
