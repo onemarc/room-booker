@@ -19,6 +19,8 @@ const MENU_BUTTON_CLASS = [
 
 type CalendarSidebarProps = {
   activeDate: string;
+  visibleRangeStart: string;
+  visibleRangeEnd: string;
   visibleMonth: string;
   timeZone: string;
   rooms: RoomAvailability[];
@@ -38,6 +40,8 @@ type CalendarSidebarProps = {
 // by CalendarShell so collapsing it cannot reset the selected schedule.
 export function CalendarSidebar({
   activeDate,
+  visibleRangeStart,
+  visibleRangeEnd,
   visibleMonth,
   timeZone,
   rooms,
@@ -69,6 +73,8 @@ export function CalendarSidebar({
       </div>
       <MiniCalendar
         activeDate={activeDate}
+        visibleRangeStart={visibleRangeStart}
+        visibleRangeEnd={visibleRangeEnd}
         visibleMonth={visibleMonth}
         timeZone={timeZone}
         onSelectDate={onSelectDate}
