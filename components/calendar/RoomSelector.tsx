@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { FiChevronDown } from "react-icons/fi";
+import { CapacityFilter } from "@/components/calendar/CapacityFilter";
 import { RoomSummary } from "@/components/calendar/RoomSummary";
 import type { RoomAvailability } from "@/lib/rooms";
 
@@ -10,13 +11,17 @@ export function RoomSelector({
   selectedRoomId,
   timeZone,
   isLoading,
+  minimumCapacity,
   onSelectRoom,
+  onMinimumCapacityChange,
 }: {
   rooms: RoomAvailability[];
   selectedRoomId: string;
   timeZone: string;
   isLoading: boolean;
+  minimumCapacity: number;
   onSelectRoom: (roomId: string) => void;
+  onMinimumCapacityChange: (value: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -161,13 +166,15 @@ export function RoomSelector({
         <div
           className="absolute top-[calc(100%+9px)] left-0 z-100 w-[min(360px,calc(100vw-28px))] overflow-hidden rounded-[14px] border border-[#d5ddd6] bg-[var(--surface)] shadow-[0_20px_55px_rgba(28,43,34,0.16)]"
         >
-          <div className="flex items-baseline justify-between border-b border-[#e4e9e5] px-3.5 py-2.5">
-            <span className="text-xs font-[700] text-[#2c3730]">
+          <div className="flex items-center justify-between gap-4 border-b border-[#e4e9e5] px-3.5 py-2.5">
+            <span className="text-sm font-[700] text-[#2c3730]">
               Choose a room
             </span>
-            <span className="text-[10px] text-[#8a938c]">
-              {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
-            </span>
+            <CapacityFilter
+              value={minimumCapacity}
+              compact
+              onChange={onMinimumCapacityChange}
+            />
           </div>
           <div
             className="max-h-[min(430px,calc(100vh-140px))] overflow-y-auto [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding"
