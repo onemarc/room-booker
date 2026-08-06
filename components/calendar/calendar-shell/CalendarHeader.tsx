@@ -173,7 +173,7 @@ export function CalendarHeader({
           type="button"
           onClick={onOpenMyBookings}
         >
-          My Bookings
+          My bookings
         </button>
         <button
           className="flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"

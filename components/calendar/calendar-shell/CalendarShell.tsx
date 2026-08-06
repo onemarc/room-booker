@@ -444,7 +444,10 @@ export function CalendarShell({
       visibleStartDate: visibleGridRange.startDate,
     });
 
-    setIsGridViewPositioning(nextView === "week" && view !== "week");
+    // Both directions need a covered paint. Day view has one wide column, so
+    // revealing it before the new schedule/position settles exposes the stale
+    // Day surface for a frame before Week (or the reverse) is ready.
+    setIsGridViewPositioning(nextView !== view);
     setScheduleLoadingMode("blocking");
     setPositionRequestId((current) => current + 1);
     setView(nextView);
