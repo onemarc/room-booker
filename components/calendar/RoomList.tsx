@@ -32,12 +32,17 @@ export function RoomList({
     >
       <div className="pr-[7px]">
         <div className="flex items-center justify-between gap-2 max-[1060px]:flex-col max-[1060px]:items-stretch">
-          <h2
-            className="m-0 shrink-0 text-[15px] font-bold text-[#2d3831]"
-            id="room-list-title"
-          >
-            Room list
-          </h2>
+          <div className="flex items-baseline gap-2">
+            <h2
+              className="m-0 shrink-0 text-[15px] font-bold text-[#2d3831]"
+              id="room-list-title"
+            >
+              Room list
+            </h2>
+            <span className="text-[11px] text-[#879088]">
+              {rooms.length}
+            </span>
+          </div>
           <div className="ml-auto flex min-w-0 items-center gap-1.5 max-[1060px]:ml-0 max-[1060px]:w-full">
             <CapacityFilter
               value={minimumCapacity}
@@ -76,26 +81,32 @@ export function RoomList({
         </div>
       ) : null}
 
-      <div className="mt-1 grid min-h-0 content-start gap-[7px] overflow-y-auto py-1 pr-1.5 [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding">
-        {rooms.map((room) => (
-          <button
-            className={[
-              "w-full cursor-pointer rounded-[11px] border px-[11px] py-2.5 text-left text-[#303a34]",
-              room.id === selectedRoomId
-                ? "border-[#4e8068] bg-[var(--accent-soft)] shadow-[inset_3px_0_0_var(--accent)] hover:border-[#4e8068] hover:bg-[var(--accent-soft)]"
-                : "border-[#d5dbd6] bg-[var(--surface)] hover:border-[#aebbb1] hover:bg-[#f7faf8]",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            type="button"
-            key={room.id}
-            aria-pressed={room.id === selectedRoomId}
-            onClick={() => onSelectRoom(room.id)}
-          >
-            <RoomSummary room={room} timeZone={timeZone} />
-          </button>
-        ))}
-      </div>
+      {rooms.length > 0 ? (
+        <div className="mt-2 min-h-0 overflow-y-auto pr-1.5 [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding">
+          <div className="overflow-hidden rounded-xl border border-[#dfe5df] bg-[var(--surface)]">
+            {rooms.map((room) => {
+              const isSelected = room.id === selectedRoomId;
+
+              return (
+                <button
+                  className={[
+                    "relative flex w-full cursor-pointer border-b border-[#e5e9e5] px-3 py-3 text-left text-[#303a34] transition-colors duration-150 last:border-b-0",
+                    isSelected
+                      ? "bg-[#edf3ef] shadow-[inset_3px_0_0_var(--accent)]"
+                      : "bg-transparent hover:bg-[#f6f8f6]",
+                  ].join(" ")}
+                  type="button"
+                  key={room.id}
+                  aria-pressed={isSelected}
+                  onClick={() => onSelectRoom(room.id)}
+                >
+                  <RoomSummary room={room} timeZone={timeZone} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
