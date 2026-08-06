@@ -1,32 +1,19 @@
 "use client";
 
-import {
-  useMemo,
-  useRef,
-  useState,
-  type SyntheticEvent,
-} from "react";
+import { useMemo, useRef, useState, type SyntheticEvent } from "react";
 import {
   DEFAULT_BOOKING_COLOR,
-  type BookingColor,
   BookingFieldErrors,
   type CreateBookingResponse,
+  type BookingColor,
   type ScheduleBooking,
 } from "@/lib/bookings";
-import type { RoomAvailability } from "@/lib/rooms";
-import {
-  formatTimeInZone,
-  getDayRangeUtc,
-  getOfficeSlotStartsWithinRange,
-  getZonedDateIso,
-} from "@/lib/time";
+import { formatTimeInZone, getDayRangeUtc, getOfficeSlotStartsWithinRange, getZonedDateIso } from "@/lib/time";
 import { Modal } from "@/components/calendar/Modal";
 import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
 import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
-import {
-  FieldError,
-  getBookingTimeOptions,
-} from "@/components/calendar/shared/booking-form-utils";
+import { FieldError, getBookingTimeOptions } from "@/components/calendar/shared/booking-form-utils";
+import type { RoomAvailability } from "@/lib/rooms";
 
 function getInitialTimes({
   room,
