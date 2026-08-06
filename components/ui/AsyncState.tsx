@@ -56,7 +56,7 @@ export function StatePanel({
       className={[
         "grid place-items-center rounded-xl border border-dashed p-6 text-center",
         isDanger
-          ? "border-[#dfcfcf] bg-[#fffafa]"
+          ? "border-[#e4aaaa] bg-[#fff5f5]"
           : "border-[#d4dbd6] bg-[#fafcfa]",
         className,
       ].join(" ")}
@@ -66,7 +66,7 @@ export function StatePanel({
         <p
           className={[
             "m-0 text-sm font-[680]",
-            isDanger ? "text-[#854242]" : "text-[#3c4840]",
+            isDanger ? "text-[#b43737]" : "text-[#3c4840]",
           ].join(" ")}
         >
           {title}
