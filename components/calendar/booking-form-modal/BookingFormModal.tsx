@@ -22,6 +22,7 @@ import {
 } from "@/lib/time";
 import { Modal } from "@/components/calendar/Modal";
 import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
+import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
 import {
   FieldError,
   getBookingTimeOptions,
@@ -125,6 +126,19 @@ export function BookingFormModal({
   const endTimeOptions = timeOptions.includes(endTime)
     ? timeOptions
     : [endTime, ...timeOptions].sort();
+  const roomOptions = rooms.map((room) => ({
+    value: room.id,
+    label: room.name,
+    description: `Floor ${room.floor} · ${room.capacity} people`,
+  }));
+  const startOptions = startTimeOptions.map((time) => ({
+    value: time,
+    label: time,
+  }));
+  const endOptions = endTimeOptions.map((time) => ({
+    value: time,
+    label: time,
+  }));
 
   async function handleSubmit(
     event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
@@ -183,7 +197,7 @@ export function BookingFormModal({
     <Modal
       title="Book a room"
       description={`Times are shown in ${timeZone}. Office rules use Europe/Kyiv.`}
-      size="medium"
+      size="small"
       closeDisabled={isSubmitting}
       onClose={onClose}
     >
@@ -193,34 +207,29 @@ export function BookingFormModal({
       >
         {formError ? (
           <div
-            className="rounded-xl border border-[#ebcece] bg-[#fff8f8] px-3.5 py-3 text-[13px] leading-5 text-[#8d3d3d]"
+            className="rounded-xl border border-[#ebcece] bg-[#fff8f8] px-3.5 py-3 text-sm leading-5 text-[#8d3d3d]"
             role="alert"
           >
             {formError}
           </div>
         ) : null}
 
-        <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
-          Room
-          <select
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+        <div className="grid gap-1.5 text-sm font-[650] text-[#334039]">
+          <span>Room</span>
+          <BookingSelect
             value={roomId}
-            aria-invalid={Boolean(fieldErrors.roomId)}
-            onChange={(event) => setRoomId(event.target.value)}
-          >
-            {rooms.map((room) => (
-              <option value={room.id} key={room.id}>
-                {room.name} · Floor {room.floor} · {room.capacity} people
-              </option>
-            ))}
-          </select>
+            options={roomOptions}
+            ariaLabel="Room"
+            isInvalid={Boolean(fieldErrors.roomId)}
+            onChange={setRoomId}
+          />
           <FieldError message={fieldErrors.roomId} />
-        </label>
+        </div>
 
-        <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
+        <label className="grid gap-1.5 text-sm font-[650] text-[#334039]">
           Date
           <input
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="date"
             value={date}
             aria-invalid={Boolean(fieldErrors.date)}
@@ -241,45 +250,40 @@ export function BookingFormModal({
         </label>
 
         <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-          <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
-            Start
-            <select
-              className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+          <div className="grid gap-1.5 text-sm font-[650] text-[#334039]">
+            <span>Start</span>
+            <BookingSelect
               value={startTime}
-              aria-invalid={Boolean(fieldErrors.startTime)}
-              onChange={(event) => setStartTime(event.target.value)}
-            >
-              {startTimeOptions.map((time) => (
-                <option value={time} key={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
+              options={startOptions}
+              ariaLabel="Start time"
+              isInvalid={Boolean(fieldErrors.startTime)}
+              onChange={setStartTime}
+            />
             <FieldError message={fieldErrors.startTime} />
-          </label>
+          </div>
 
-          <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
-            End
-            <select
-              className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+          <div className="grid gap-1.5 text-sm font-[650] text-[#334039]">
+            <span>End</span>
+            <BookingSelect
               value={endTime}
-              aria-invalid={Boolean(fieldErrors.endTime)}
-              onChange={(event) => setEndTime(event.target.value)}
-            >
-              {endTimeOptions.map((time) => (
-                <option value={time} key={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
+              options={endOptions}
+              ariaLabel="End time"
+              isInvalid={Boolean(fieldErrors.endTime)}
+              onChange={setEndTime}
+            />
             <FieldError message={fieldErrors.endTime} />
-          </label>
+          </div>
         </div>
 
-        <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
-          Booking title
+        <label className="grid gap-1.5 text-sm font-[650] text-[#334039]">
+          <span className="flex items-baseline justify-between gap-3">
+            <span>Booking title</span>
+            <span className="text-[13px] font-normal text-[#8a948d]">
+              {title.length}/100
+            </span>
+          </span>
           <input
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129] outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="text"
             value={title}
             maxLength={100}
@@ -288,18 +292,13 @@ export function BookingFormModal({
             aria-invalid={Boolean(fieldErrors.title)}
             onChange={(event) => setTitle(event.target.value)}
           />
-          <span className="flex items-start justify-between gap-3">
-            <FieldError message={fieldErrors.title} />
-            <span className="ml-auto text-xs font-normal text-[#8a948d]">
-              {title.length}/100
-            </span>
-          </span>
+          <FieldError message={fieldErrors.title} />
         </label>
 
-        <label className="grid gap-1.5 text-[13px] font-[650] text-[#334039]">
+        <label className="grid gap-1.5 text-sm font-[650] text-[#334039]">
           Weekly occurrences
           <input
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-sm font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="number"
             min={1}
             max={52}
@@ -310,14 +309,14 @@ export function BookingFormModal({
               setRecurrenceCount(event.currentTarget.valueAsNumber)
             }
           />
-          <span className="text-xs font-normal text-[#7b867f]">
+          <span className="text-[13px] font-normal text-[#7b867f]">
             Use 1 for a single booking, or repeat weekly up to 52 times.
           </span>
           <FieldError message={fieldErrors.recurrenceCount} />
         </label>
 
-        <fieldset className="m-0 grid gap-2 border-0 p-0">
-          <legend className="p-0 text-[13px] font-[650] text-[#334039]">
+        <fieldset className="m-0 grid gap-3 border-0 p-1">
+          <legend className="p-0 text-sm font-[650] text-[#334039]">
             Color
           </legend>
           <div className="flex flex-wrap gap-2.5">
@@ -352,7 +351,7 @@ export function BookingFormModal({
 
         <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-4">
           <button
-            className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4 text-[13px] font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4 text-sm font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             disabled={isSubmitting}
             onClick={onClose}
@@ -360,7 +359,7 @@ export function BookingFormModal({
             Cancel
           </button>
           <button
-            className="h-10 cursor-pointer rounded-[9px] border border-[var(--accent)] bg-[var(--accent)] px-4 text-[13px] font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-55"
+            className="h-10 cursor-pointer rounded-[9px] border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-55"
             type="submit"
             disabled={isSubmitting || rooms.length === 0}
           >
