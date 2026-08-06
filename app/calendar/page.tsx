@@ -3,11 +3,7 @@ import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { listRoomSchedule } from "@/lib/server/bookings";
 import { listRoomsWithAvailability } from "@/lib/server/rooms";
 import { requirePageUser } from "@/lib/server/session";
-import {
-  getPeriodRangeUtc,
-  getZonedDateIso,
-  serializeUtcInstant,
-} from "@/lib/time";
+import { getPeriodRangeUtc, getZonedDateIso, serializeUtcInstant } from "@/lib/time";
 
 export const metadata = {
   title: "Calendar",

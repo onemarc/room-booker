@@ -32,14 +32,14 @@ export default function CalendarError({
         <CalendarGridSkeleton
           overlay={
             <StatePanel
-              className="min-h-[220px] w-full max-w-[560px] bg-[rgba(255,245,245,0.98)]"
+              className="min-h-[220px] w-full max-w-[560px] bg-[rgba(255,250,250,0.96)]"
               title="The calendar could not be loaded"
               description="The server or database may be temporarily unavailable. Your existing bookings have not been changed."
               tone="danger"
               role="alert"
               action={
                 <button
-                  className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#d78a8a] bg-white px-4 text-xs font-bold text-[#b43737] hover:bg-[#fff0f0] [&>svg]:size-4"
+                  className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#d7c9c9] bg-white px-4 text-xs font-bold text-[#8b3e3e] hover:bg-[#fff6f6] [&>svg]:size-4"
                   type="button"
                   onClick={unstable_retry}
                 >
