@@ -13,9 +13,8 @@ import {
 import { getBookingPosition, getOfficeTime, getSelectionBounds, OFFICE_WINDOW_MINUTES, SLOT_COUNT } from "./calendar-grid-utils";
 import { BOOKING_COLOR_STYLES } from "@/components/calendar/booking-colors";
 import { OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
-import { CalendarGridToolbar } from "./CalendarGridToolbar";
 import { CalendarLoadingOverlay } from "./CalendarLoadingOverlay";
-import { CALENDAR_TIME_COLUMN_WIDTH, getCalendarCanvasWidthStyle } from "./calendar-window";
+import { CALENDAR_TIME_COLUMN_WIDTH, getCalendarCanvasWidth } from "./calendar-window";
 import { useInfiniteWeekScroll } from "./useInfiniteWeekScroll";
 import { useGridSelection } from "./useGridSelection";
 import type { BookingColor, ScheduleBooking } from "@/lib/bookings";
@@ -119,42 +118,41 @@ export function CalendarGrid({
   view,
   isSidebarOpen,
   positionRequestId,
+  stopScrollRequestId,
   isViewPositioning,
   timeZone,
   displayName,
   selectedRoom,
-  rooms,
-  selectedRoomId,
   bookings,
-  isRoomsLoading,
+  canBook,
   isScheduleLoading,
   scheduleError,
-  canBook,
-  showRoomSelector,
-  minimumCapacity,
   draftColor,
   previewBookingColor,
-  onSelectRoom,
-  onMinimumCapacityChange,
   onRetrySchedule,
-    onOpenBooking,
-    onCreateSelection,
-    onUpdateSelection,
+  onCreateSelection,
+  onUpdateSelection,
   onEditBooking,
   selectedGridSelection,
   onVisibleRangeChange,
   onViewPositioned,
 }: CalendarGridProps) {
-  const { dates, handleScroll, scrollViewportRef, setDateColumnRef } =
-    useInfiniteWeekScroll({
-      targetDate,
-      isSidebarOpen,
-      positionRequestId,
-      view,
-      isViewPositioning,
-      onVisibleRangeChange,
-      onViewPositioned,
-    });
+  const {
+    dates,
+    handleScroll,
+    scrollViewportRef,
+    setDateColumnRef,
+    viewportWidth,
+  } = useInfiniteWeekScroll({
+    targetDate,
+    isSidebarOpen,
+    positionRequestId,
+    stopScrollRequestId,
+    view,
+    isViewPositioning,
+    onVisibleRangeChange,
+    onViewPositioned,
+  });
   const [currentTime, setCurrentTime] = useState<number | null>(null);
   useEffect(() => {
     const updateCurrentTime = () => setCurrentTime(Date.now());
@@ -259,7 +257,10 @@ export function CalendarGrid({
     ...gridStyle,
     width:
       view === "week"
-        ? getCalendarCanvasWidthStyle(dates.length)
+        ? `${getCalendarCanvasWidth({
+            dayCount: dates.length,
+            viewportWidth,
+          })}px`
         : "100%",
     minWidth: `${CALENDAR_TIME_COLUMN_WIDTH + 94}px`,
   } as CSSProperties;
@@ -340,32 +341,16 @@ export function CalendarGrid({
         selectedRoom?.name ?? "no selected room"
       }`}
     >
-      <CalendarGridToolbar
-        selectedRoom={selectedRoom}
-        rooms={rooms}
-        selectedRoomId={selectedRoomId}
-        timeZone={timeZone}
-        showRoomSelector={showRoomSelector}
-        isRoomsLoading={isRoomsLoading}
-        minimumCapacity={minimumCapacity}
-        canBook={canBook}
-        onSelectRoom={onSelectRoom}
-        onMinimumCapacityChange={onMinimumCapacityChange}
-        onOpenBooking={onOpenBooking}
-      />
-
       {isViewPositioning ? (
         <div
-          className="pointer-events-none absolute inset-x-0 top-[61px] bottom-0 z-20 bg-[var(--surface)]"
+          className="pointer-events-none absolute inset-0 z-20 bg-[var(--surface)]"
           aria-hidden="true"
         />
       ) : null}
 
       <div
         className={[
-          "flex min-h-0 flex-1 touch-pan-x touch-pan-y flex-col overflow-auto overscroll-contain [container-type:inline-size] [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin]",
-          "[&::-webkit-scrollbar]:size-[9px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2",
-          "[&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#aab4ac] [&::-webkit-scrollbar-thumb]:bg-clip-padding",
+          "flex min-h-0 flex-1 touch-pan-x touch-pan-y flex-col overflow-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           isViewPositioning ? "invisible" : "visible",
         ].join(" ")}
         ref={scrollViewportRef}
@@ -374,7 +359,7 @@ export function CalendarGrid({
         data-calendar-scroll-viewport
       >
         <div
-          className="sticky top-0 z-8 grid min-h-[52px] w-full min-w-full flex-none grid-cols-[62px_repeat(var(--calendar-columns),minmax(94px,1fr))] bg-transparent"
+          className="sticky top-0 z-8 grid min-h-[92px] w-full min-w-full flex-none border-t border-[var(--grid-line)] grid-cols-[62px_repeat(var(--calendar-columns),minmax(94px,1fr))] bg-transparent"
           style={gridCanvasStyle}
         >
           <div
@@ -384,12 +369,10 @@ export function CalendarGrid({
           {dates.map((date) => (
             <div
               className={[
-                "flex min-w-0 items-center justify-center gap-[5px] border-r border-b border-[var(--grid-line)] text-[13px] text-[#69746c] [&>strong]:text-[15px] [&>strong]:font-[680] [&>strong]:text-[#354138]",
-                date === today
-                  ? "bg-[var(--surface)] [&>strong]:grid [&>strong]:h-[25px] [&>strong]:min-w-[25px] [&>strong]:place-items-center [&>strong]:rounded-[7px] [&>strong]:bg-[var(--accent)] [&>strong]:text-white"
-                  : date === activeDate
-                    ? "bg-[#f5f8f5]"
-                    : "bg-[var(--surface)]",
+                "flex min-w-0 flex-col items-center justify-center border-r border-b border-[var(--grid-line)] bg-[var(--surface)] leading-none",
+                date === today || date === activeDate
+                  ? "text-[#315841]"
+                  : "text-[#b8bab8]",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -397,12 +380,14 @@ export function CalendarGrid({
               data-calendar-date={date}
               ref={(element) => setDateColumnRef(date, element)}
             >
-              <span>{formatCalendarDay(date, { weekday: "short" })}</span>
-              <strong>
+              <strong className="text-[clamp(34px,3.1vw,48px)] font-[650] tracking-[-0.04em] tabular-nums">
                 {formatCalendarDay(date, {
-                  day: "numeric",
+                  day: "2-digit",
                 })}
               </strong>
+              <span className="mt-1 text-[clamp(17px,1.65vw,24px)] font-[450]">
+                {formatCalendarDay(date, { weekday: "short" })}
+              </span>
             </div>
           ))}
         </div>
@@ -609,7 +594,7 @@ export function CalendarGrid({
           centered in the visible viewport instead of in the full 49-day grid. */}
       {!isScheduleLoading && scheduleError ? (
         <div
-          className="absolute inset-x-0 top-[61px] bottom-0 z-30 grid place-items-center bg-[rgba(255,236,236,0.58)] p-4 backdrop-blur-[3px]"
+          className="absolute inset-x-0 top-[92px] bottom-0 z-30 grid place-items-center bg-[rgba(255,236,236,0.58)] p-4 backdrop-blur-[3px]"
           role="presentation"
         >
           <div
