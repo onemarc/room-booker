@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { FiArrowRight, FiTrash2 } from "react-icons/fi";
-import { BOOKING_COLOR_STYLES } from "@/components/calendar/booking-colors";
+import { FiArrowRight } from "react-icons/fi";
+import { TbCalendarCancel } from "react-icons/tb";
+import { HiOutlinePencilSquare } from "react-icons/hi2";
+import { LuClock4, LuDoorOpen } from "react-icons/lu";
 import { Modal } from "@/components/calendar/Modal";
 import { formatUtcInstant, getZonedDateIso, type CalendarView } from "@/lib/time";
 import type { MyBookingsResponse, OwnedBooking } from "@/lib/bookings";
@@ -34,7 +36,66 @@ function formatBookingTime(booking: OwnedBooking, timeZone: string) {
     booking.startAt,
     timeZone,
     formatterOptions,
-  )}–${formatUtcInstant(booking.endAt, timeZone, formatterOptions)}`;
+  )}-${formatUtcInstant(booking.endAt, timeZone, formatterOptions)}`;
+}
+
+function formatBookingMonth(booking: OwnedBooking, timeZone: string) {
+  return formatUtcInstant(
+    booking.startAt,
+    timeZone,
+    { month: "long", year: "numeric" },
+    "en-GB",
+  );
+}
+
+function formatBookingWeekday(booking: OwnedBooking, timeZone: string) {
+  return formatUtcInstant(
+    booking.startAt,
+    timeZone,
+    { weekday: "short" },
+    "en-GB",
+  );
+}
+
+function formatBookingDay(booking: OwnedBooking, timeZone: string) {
+  return formatUtcInstant(
+    booking.startAt,
+    timeZone,
+    { day: "2-digit" },
+    "en-GB",
+  );
+}
+
+type BookingMonthGroup = {
+  key: string;
+  label: string;
+  bookings: OwnedBooking[];
+};
+
+function groupBookingsByMonth(
+  bookings: OwnedBooking[],
+  timeZone: string,
+): BookingMonthGroup[] {
+  const groups: BookingMonthGroup[] = [];
+
+  // Keep the API's chronological ordering while inserting a heading only when
+  // the booking crosses a month boundary in the user's selected time zone.
+  for (const booking of bookings) {
+    const key = getZonedDateIso(booking.startAt, timeZone).slice(0, 7);
+    const currentGroup = groups.at(-1);
+
+    if (!currentGroup || currentGroup.key !== key) {
+      groups.push({
+        key,
+        label: formatBookingMonth(booking, timeZone),
+        bookings: [booking],
+      });
+    } else {
+      currentGroup.bookings.push(booking);
+    }
+  }
+
+  return groups;
 }
 
 async function requestBookingSection(
@@ -68,6 +129,7 @@ function BookingRow({
   booking,
   timeZone,
   isUpcoming,
+  isHighlighted,
   cancellationPending,
   onNavigate,
   onRequestCancellation,
@@ -75,55 +137,97 @@ function BookingRow({
   booking: OwnedBooking;
   timeZone: string;
   isUpcoming: boolean;
+  isHighlighted: boolean;
   cancellationPending: boolean;
   onNavigate: (booking: OwnedBooking) => void;
   onRequestCancellation: (booking: OwnedBooking) => void;
 }) {
-  const color = BOOKING_COLOR_STYLES[booking.color];
+  const detailTextClass = isHighlighted
+    ? "text-[#4f5b53]"
+    : "text-[#969a97]";
 
   return (
     <article
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl border border-[#dce2dd] border-l-4 bg-white hover:border-[#b9c5bc]"
-      style={{ borderLeftColor: color.border }}
+      className="group relative overflow-hidden rounded-[14px] border bg-white transition-colors hover:border-[#315b46] focus-within:border-[#315b46]"
+      style={{
+        borderColor: isHighlighted ? "#315b46" : "#c9ceca",
+      }}
     >
       <button
-        className="grid min-w-0 cursor-pointer grid-cols-[minmax(150px,0.8fr)_minmax(130px,0.65fr)_minmax(180px,1.35fr)_auto] items-center gap-4 border-0 bg-transparent px-4 py-3.5 text-left max-[720px]:grid-cols-1 max-[720px]:gap-1.5"
+        className="grid min-h-[104px] w-full cursor-pointer grid-cols-[112px_minmax(0,1fr)] items-stretch border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[96px_minmax(0,1fr)] max-[640px]:grid-cols-1 max-[640px]:min-h-0"
         type="button"
         onClick={() => onNavigate(booking)}
       >
-        <span className="grid gap-0.5">
-          <strong className="text-[13px] font-[690] text-[#2d3931]">
-            {formatBookingDate(booking, timeZone)}
-          </strong>
-          <span className="text-xs text-[#748078]">
-            {formatBookingTime(booking, timeZone)}
+        <span
+          className={[
+            "grid place-content-center justify-items-center border-r px-3 py-4 text-center",
+            isHighlighted ? "border-white" : "border-[#edf0ee]",
+            "max-[900px]:px-2 max-[640px]:grid-cols-[auto_auto] max-[640px]:justify-center max-[640px]:gap-2 max-[640px]:border-r-0 max-[640px]:border-b max-[640px]:py-3",
+          ].join(" ")}
+        >
+          <span
+            className={[
+              "text-[18px] leading-none font-[500]",
+              isHighlighted ? "text-[#3d624e]" : "text-[#b7b9b8]",
+              "max-[900px]:text-[16px] max-[640px]:text-[14px]",
+            ].join(" ")}
+          >
+            {formatBookingWeekday(booking, timeZone)}
           </span>
+          <strong
+            className={[
+              "text-[44px] leading-[0.95] font-[650] tracking-[-0.055em]",
+              isHighlighted ? "text-[#3d624e]" : "text-[#b7b9b8]",
+              "max-[900px]:text-[38px] max-[640px]:text-[30px]",
+            ].join(" ")}
+          >
+            {formatBookingDay(booking, timeZone)}
+          </strong>
         </span>
-        <span className="text-[13px] font-[620] text-[#536057]">
-          {booking.roomName}
+        <span className="grid min-w-0 grid-cols-[minmax(110px,0.82fr)_minmax(110px,0.9fr)_minmax(140px,1.2fr)_auto] items-center gap-x-5 pr-4 pl-6 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-4 max-[900px]:gap-y-3 max-[640px]:grid-cols-[minmax(0,1fr)_auto] max-[640px]:gap-3 max-[640px]:px-4 max-[640px]:py-4">
+          <span className={`flex min-w-0 items-center gap-2.5 text-[16px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[15px] max-[640px]:gap-2 max-[640px]:text-[14px]`}>
+            <LuClock4
+              className="size-[23px] flex-none text-[#151918] max-[1100px]:size-5 max-[640px]:size-[18px]"
+              aria-hidden="true"
+            />
+            <span className="truncate">{formatBookingTime(booking, timeZone)}</span>
+          </span>
+          <span className={`flex min-w-0 items-center gap-2.5 text-[16px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[15px] max-[640px]:gap-2 max-[640px]:text-[14px]`}>
+            <LuDoorOpen
+              className="size-[24px] flex-none text-[#151918] max-[1100px]:size-5 max-[640px]:size-[18px]"
+              aria-hidden="true"
+            />
+            <span className="truncate">{booking.roomName}</span>
+          </span>
+          <span className={`flex min-w-0 items-center gap-2.5 overflow-hidden pr-[52px] text-[16px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[15px] max-[640px]:gap-2 max-[640px]:pr-10 max-[640px]:text-[14px]`}>
+            <HiOutlinePencilSquare
+              className="size-[24px] flex-none text-[#151918] max-[1100px]:size-5 max-[640px]:size-[18px]"
+              aria-hidden="true"
+            />
+            <span className="truncate">
+              {booking.title}
+              {booking.seriesId ? (
+                <small className="ml-2 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-[680] text-[var(--accent)]">
+                  Weekly
+                </small>
+              ) : null}
+            </span>
+          </span>
+          <FiArrowRight
+            className="size-[22px] justify-self-end text-[#87918b] max-[1100px]:size-5 max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[18px]"
+            aria-hidden="true"
+          />
         </span>
-        <span className="overflow-hidden text-[13px] font-[650] text-ellipsis whitespace-nowrap text-[#263129]">
-          {booking.title}
-          {booking.seriesId ? (
-            <small className="ml-2 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-[680] text-[var(--accent)]">
-              Weekly
-            </small>
-          ) : null}
-        </span>
-        <FiArrowRight
-          className="size-4 text-[#7a857d] max-[720px]:hidden"
-          aria-hidden="true"
-        />
       </button>
       {isUpcoming ? (
         <button
-          className="grid w-12 cursor-pointer place-items-center border-0 border-l border-[#e2e7e3] bg-transparent text-[#8a4646] hover:bg-[#fff5f5] disabled:cursor-wait disabled:opacity-50 [&>svg]:size-[17px]"
+          className="pointer-events-none absolute top-1/2 right-[48px] grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-[#fff5f5] text-[#8a4646] opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 disabled:cursor-wait disabled:opacity-50 [&>svg]:size-[23px]"
           type="button"
           aria-label={`Cancel ${booking.title}`}
           disabled={cancellationPending}
           onClick={() => onRequestCancellation(booking)}
         >
-          <FiTrash2 aria-hidden="true" />
+          <TbCalendarCancel aria-hidden="true" />
         </button>
       ) : null}
     </article>
@@ -184,7 +288,7 @@ function ConfirmationDialog({
 
   return (
     <div
-      className="absolute inset-0 z-20 grid place-items-center bg-[rgba(23,32,27,0.42)] p-5 backdrop-blur-[2px]"
+      className="absolute -inset-px z-20 grid place-items-center overflow-hidden rounded-[19px] bg-[rgba(23,32,27,0.42)] p-5 backdrop-blur-[2px]"
       role="presentation"
       onKeyDown={handleKeyDown}
     >
@@ -202,10 +306,10 @@ function ConfirmationDialog({
           Cancel this booking?
         </h3>
         <p
-          className="mt-2 mb-0 text-[13px] leading-5 text-[#647068]"
+          className="mt-2 mb-0 text-[13px] leading-5 text-[#647068] [overflow-wrap:anywhere]"
           id="cancel-booking-description"
         >
-          <strong className="font-[690] text-[#354139]">
+          <strong className="font-[690] text-[#354139] [overflow-wrap:anywhere]">
             {booking.title}
           </strong>{" "}
           in {booking.roomName} on{" "}
@@ -436,12 +540,15 @@ export function MyBookingsModal({
   }
 
   const visibleBookings = section === "upcoming" ? upcoming : past;
+  const bookingGroups = groupBookingsByMonth(visibleBookings, timeZone);
+  const firstUpcomingBookingId = upcoming[0]?.id;
 
   return (
     <Modal
-      title="My Bookings"
+      title="My bookings"
       description={`Dates and times are shown in ${timeZone}.`}
       closeDisabled={isCancelling}
+      overlayOpen={Boolean(bookingToCancel)}
       onClose={onClose}
     >
       <div className="flex min-h-0 flex-1 flex-col">
@@ -456,7 +563,7 @@ export function MyBookingsModal({
                 "relative h-11 cursor-pointer border-0 bg-transparent px-3 text-[13px] font-[670]",
                 section === item
                   ? "text-[var(--accent)] after:absolute after:right-2 after:bottom-0 after:left-2 after:h-0.5 after:rounded-full after:bg-[var(--accent)] after:content-['']"
-                  : "text-[#6c776f] hover:text-[#344139]",
+                  : "text-[#7d8780] hover:text-[#344139]",
               ].join(" ")}
               type="button"
               role="tab"
@@ -476,12 +583,13 @@ export function MyBookingsModal({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 [scrollbar-color:#aab4ac_transparent] [scrollbar-width:thin] max-[640px]:px-4">
+          <div key={section} className="booking-tab-panel-enter">
           {isLoading ? (
             <div className="grid gap-2.5" role="status">
               <span className="sr-only">Loading your bookings</span>
-              {Array.from({ length: 4 }, (_, index) => (
+              {Array.from({ length: 3 }, (_, index) => (
                 <div
-                  className="h-[70px] animate-pulse rounded-xl border border-[#e3e8e4] bg-[#f4f7f4]"
+                  className="h-[104px] animate-pulse rounded-[14px] border border-[#e3e8e4] bg-[#f4f7f4]"
                   key={index}
                 />
               ))}
@@ -522,32 +630,45 @@ export function MyBookingsModal({
               </div>
             </div>
           ) : (
-            <div className="grid gap-2.5">
-              {visibleBookings.map((booking) => (
-                <BookingRow
-                  booking={booking}
-                  timeZone={timeZone}
-                  isUpcoming={section === "upcoming"}
-                  cancellationPending={
-                    isCancelling && bookingToCancel?.id === booking.id
-                  }
-                  key={booking.id}
-                  onNavigate={(selectedBooking) => {
-                    onNavigate({
-                      roomId: selectedBooking.roomId,
-                      date: getZonedDateIso(
-                        selectedBooking.startAt,
-                        timeZone,
-                      ),
-                      view,
-                    });
-                  }}
-                  onRequestCancellation={(selectedBooking) => {
-                    setCancellationError("");
-                    setCancellationScope("occurrence");
-                    setBookingToCancel(selectedBooking);
-                  }}
-                />
+            <div className="grid gap-4">
+              {bookingGroups.map((group) => (
+                <section className="grid gap-2" key={group.key}>
+                  <h3 className="m-0 text-base leading-tight font-[500] text-[#4f5551]">
+                    {group.label}
+                  </h3>
+                  <div className="grid gap-2.5">
+                    {group.bookings.map((booking) => (
+                      <BookingRow
+                        booking={booking}
+                        timeZone={timeZone}
+                        isUpcoming={section === "upcoming"}
+                        isHighlighted={
+                          section === "upcoming" &&
+                          booking.id === firstUpcomingBookingId
+                        }
+                        cancellationPending={
+                          isCancelling && bookingToCancel?.id === booking.id
+                        }
+                        key={booking.id}
+                        onNavigate={(selectedBooking) => {
+                          onNavigate({
+                            roomId: selectedBooking.roomId,
+                            date: getZonedDateIso(
+                              selectedBooking.startAt,
+                              timeZone,
+                            ),
+                            view,
+                          });
+                        }}
+                        onRequestCancellation={(selectedBooking) => {
+                          setCancellationError("");
+                          setCancellationScope("occurrence");
+                          setBookingToCancel(selectedBooking);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
               ))}
 
               {loadError ? (
@@ -572,6 +693,7 @@ export function MyBookingsModal({
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {bookingToCancel ? (
