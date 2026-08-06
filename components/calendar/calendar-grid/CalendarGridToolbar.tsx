@@ -2,8 +2,8 @@ import { FiPlus } from "react-icons/fi";
 import { CapacityFilter } from "@/components/calendar/CapacityFilter";
 import { RoomSelector } from "@/components/calendar/RoomSelector";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
-import type { RoomAvailability } from "@/lib/rooms";
 import { canonicalizeTimeZone } from "@/lib/time";
+import type { RoomAvailability } from "@/lib/rooms";
 
 // The toolbar only presents room context and actions; calendar state remains
 // in the grid shell so changing its layout cannot change selection behavior.
@@ -36,7 +36,7 @@ export function CalendarGridToolbar({
   const canonicalOfficeZone = canonicalizeTimeZone(OFFICE_TIME_ZONE);
 
   return (
-    <div className="flex min-h-[55px] flex-none items-center justify-between gap-[18px]
+    <div className="flex h-[61px] flex-none items-center justify-between gap-[18px]
                     border-b border-[var(--line)] py-1.5 pr-[15px] pl-3.5">
       <div className="grid gap-px">
         {showRoomSelector ? 
