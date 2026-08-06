@@ -9,6 +9,7 @@ export const CALENDAR_WINDOW_WEEK_COUNT = CALENDAR_WEEK_BUFFER * 2 + 1;
 export const CALENDAR_WINDOW_DAY_COUNT = CALENDAR_WINDOW_WEEK_COUNT * 7;
 export const CALENDAR_WINDOW_SHIFT_WEEKS = 2;
 export const CALENDAR_WINDOW_SHIFT_DAYS = CALENDAR_WINDOW_SHIFT_WEEKS * 7;
+export const CALENDAR_EVENT_PREFETCH_WEEK_COUNT = 2;
 
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
@@ -56,6 +57,34 @@ export function getCalendarWindowWeekStarts(activeDate: string) {
   return Array.from({ length: CALENDAR_WINDOW_WEEK_COUNT }, (_, index) =>
     addCalendarDays(windowStart, index * 7),
   );
+}
+
+export function getCalendarEventPrefetchPeriodDates({
+  visibleStartDate,
+  visibleEndDate,
+}: {
+  visibleStartDate: string;
+  visibleEndDate: string;
+}) {
+  const visibleStartWeek = getMondayStart(visibleStartDate);
+  const visibleEndWeek = getMondayStart(visibleEndDate);
+  const periodDates = Array.from(
+    new Set([visibleStartWeek, visibleEndWeek]),
+  );
+
+  // Keep one adjacent week ready even when the seven-day viewport begins and
+  // ends inside the same server period. Each period is fetched separately
+  // because the schedule endpoint intentionally caps a request at one week.
+  while (periodDates.length < CALENDAR_EVENT_PREFETCH_WEEK_COUNT) {
+    periodDates.push(
+      addCalendarDays(
+        visibleStartWeek,
+        periodDates.length * CALENDAR_VISIBLE_DAY_COUNT,
+      ),
+    );
+  }
+
+  return periodDates;
 }
 
 export type VisibleCalendarRange = {
@@ -154,14 +183,27 @@ export function getCalendarCanvasWidth({
     return minimumWidth;
   }
 
-  // React owns the measured viewport width so opening or closing the sidebar
-  // commits a new canvas size. Exactly seven columns fill the viewport, while
-  // the buffered columns retain the same width for continuous scrolling.
+  // Model the numeric geometry used by scroll calculations and regression
+  // tests. The live grid uses the responsive CSS helper below so a sidebar
+  // reflow does not require a second React render before columns resize.
   return Math.max(
     minimumWidth,
     CALENDAR_TIME_COLUMN_WIDTH +
       dayCount * getCalendarDayColumnWidth(viewportWidth),
   );
+}
+
+export function getResponsiveCalendarCanvasWidth(dayCount: number) {
+  const minimumWidth =
+    CALENDAR_TIME_COLUMN_WIDTH + dayCount * CALENDAR_MIN_DAY_COLUMN_WIDTH;
+  const viewportScale = dayCount / CALENDAR_VISIBLE_DAY_COUNT;
+  const timeRailCorrection =
+    CALENDAR_TIME_COLUMN_WIDTH * (viewportScale - 1);
+
+  // Resolve the buffered canvas directly from its scroll viewport. This lets
+  // the browser resize all date columns in the same layout pass as the sidebar,
+  // instead of waiting for ResizeObserver -> React state -> a second render.
+  return `max(${minimumWidth}px, calc(${viewportScale * 100}% - ${timeRailCorrection}px))`;
 }
 
 export function getDateScrollLeft({

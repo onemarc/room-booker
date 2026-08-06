@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import {
   CALENDAR_SLOT_MINUTES,
   calendarDateToIso,
@@ -14,7 +14,7 @@ import { getBookingPosition, getOfficeTime, getSelectionBounds, OFFICE_WINDOW_MI
 import { BOOKING_COLOR_STYLES } from "@/components/calendar/booking-colors";
 import { OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { CalendarLoadingOverlay } from "./CalendarLoadingOverlay";
-import { CALENDAR_TIME_COLUMN_WIDTH, getCalendarCanvasWidth } from "./calendar-window";
+import { CALENDAR_TIME_COLUMN_WIDTH, getResponsiveCalendarCanvasWidth } from "./calendar-window";
 import { useInfiniteWeekScroll } from "./useInfiniteWeekScroll";
 import { useGridSelection } from "./useGridSelection";
 import type { BookingColor, ScheduleBooking } from "@/lib/bookings";
@@ -112,7 +112,11 @@ function DraftBookingPreview({
 
 export type { CalendarGridSelection } from "./types";
 
-export function CalendarGrid({
+export type CalendarGridHandle = {
+  captureSidebarLayoutAnchor: () => void;
+};
+
+export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(function CalendarGrid({
   activeDate,
   targetDate,
   view,
@@ -136,13 +140,13 @@ export function CalendarGrid({
   selectedGridSelection,
   onVisibleRangeChange,
   onViewPositioned,
-}: CalendarGridProps) {
+}: CalendarGridProps, ref: Ref<CalendarGridHandle>) {
   const {
+    captureSidebarLayoutAnchor,
     dates,
     handleScroll,
     scrollViewportRef,
     setDateColumnRef,
-    viewportWidth,
   } = useInfiniteWeekScroll({
     targetDate,
     isSidebarOpen,
@@ -153,6 +157,11 @@ export function CalendarGrid({
     onVisibleRangeChange,
     onViewPositioned,
   });
+  useImperativeHandle(
+    ref,
+    () => ({ captureSidebarLayoutAnchor }),
+    [captureSidebarLayoutAnchor],
+  );
   const [currentTime, setCurrentTime] = useState<number | null>(null);
   useEffect(() => {
     const updateCurrentTime = () => setCurrentTime(Date.now());
@@ -257,10 +266,7 @@ export function CalendarGrid({
     ...gridStyle,
     width:
       view === "week"
-        ? `${getCalendarCanvasWidth({
-            dayCount: dates.length,
-            viewportWidth,
-          })}px`
+        ? getResponsiveCalendarCanvasWidth(dates.length)
         : "100%",
     minWidth: `${CALENDAR_TIME_COLUMN_WIDTH + 94}px`,
   } as CSSProperties;
@@ -470,7 +476,7 @@ export function CalendarGrid({
 
           <div
             className="pointer-events-none absolute inset-0 z-4 grid grid-cols-[62px_repeat(var(--calendar-columns),minmax(94px,1fr))]"
-            style={gridCanvasStyle}
+            style={gridStyle}
           >
             <div aria-hidden="true" />
             {dates.map((date) => (
@@ -616,4 +622,4 @@ export function CalendarGrid({
       ) : null}
     </section>
   );
-}
+});
