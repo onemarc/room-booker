@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import {
+  addCalendarDays,
   CALENDAR_SLOT_MINUTES,
   calendarDateToIso,
   formatCalendarDay,
@@ -262,6 +263,15 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
   const gridStyle = {
     "--calendar-columns": dates.length,
   } as CSSProperties;
+  const transitionDates = useMemo(
+    () =>
+      view === "week"
+        ? Array.from({ length: 7 }, (_, index) =>
+            addCalendarDays(targetDate, index),
+          )
+        : [targetDate],
+    [targetDate, view],
+  );
   const gridCanvasStyle = {
     ...gridStyle,
     width:
@@ -349,7 +359,7 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
     >
       {isViewPositioning ? (
         <div
-          className="pointer-events-none absolute inset-0 z-20 bg-[var(--surface)]"
+          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[92px] bg-[var(--surface)]"
           aria-hidden="true"
         />
       ) : null}
@@ -357,7 +367,6 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
       <div
         className={[
           "flex min-h-0 flex-1 touch-pan-x touch-pan-y flex-col overflow-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          isViewPositioning ? "invisible" : "visible",
         ].join(" ")}
         ref={scrollViewportRef}
         onScroll={handleScroll}
@@ -588,13 +597,18 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
             ))}
           </div>
 
-          {isScheduleLoading ? (
-            // Keep the transition layer on the same seven-day canvas as the
-            // active view so the loading state cannot stretch across days.
-            <CalendarLoadingOverlay dates={dates} />
-          ) : null}
         </div>
       </div>
+
+      {isViewPositioning || isScheduleLoading ? (
+        // Keep transitions tied to the visible viewport. The live Week grid is
+        // recycled across 49 dates, but a loading surface should represent only
+        // the seven columns (or one Day column) the user is about to see.
+        <CalendarLoadingOverlay
+          dates={transitionDates}
+          style={{ top: "92px" }}
+        />
+      ) : null}
 
       {/* Keep this layer outside the recycled day canvas so the error card is
           centered in the visible viewport instead of in the full 49-day grid. */}

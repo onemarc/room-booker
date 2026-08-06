@@ -355,7 +355,7 @@ export function useInfiniteWeekScroll({
       ) {
         return range;
       }
-      if (rangeKey !== lastReportedRangeKeyRef.current) {
+      if (!isViewPositioning && rangeKey !== lastReportedRangeKeyRef.current) {
         lastReportedRangeKeyRef.current = rangeKey;
         onVisibleRangeChange(range);
       }
@@ -366,6 +366,7 @@ export function useInfiniteWeekScroll({
       measureDayColumnWidth,
       onVisibleRangeChange,
       resolvedWindowStart,
+      isViewPositioning,
       targetDate,
       view,
     ],
@@ -502,6 +503,8 @@ export function useInfiniteWeekScroll({
     }
 
     if (view !== "week") {
+      const enteredDayView = previousViewRef.current !== view;
+
       // A scroll event is reported on the next animation frame. Cancel any
       // Week callback before it can replace the Day target with an old Monday.
       if (scrollFrameRef.current !== null) {
@@ -534,6 +537,19 @@ export function useInfiniteWeekScroll({
       previousStopScrollRequestIdRef.current = stopScrollRequestId;
       previousViewRef.current = view;
       reportVisibleRange(viewport);
+
+      if (enteredDayView && isViewPositioning) {
+        // Day view does not need horizontal positioning, but it still needs
+        // two paints before the transition cover is removed. This prevents the
+        // old Week header or schedule from flashing during the view switch.
+        viewRevealFrameRef.current = requestAnimationFrame(() => {
+          viewRevealFrameRef.current = null;
+          viewRevealPaintFrameRef.current = requestAnimationFrame(() => {
+            viewRevealPaintFrameRef.current = null;
+            onViewPositioned();
+          });
+        });
+      }
       return;
     }
 
