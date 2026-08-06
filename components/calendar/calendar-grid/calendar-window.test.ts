@@ -3,9 +3,11 @@ import test from "node:test";
 import {
   CALENDAR_TIME_COLUMN_WIDTH,
   CALENDAR_WINDOW_DAY_COUNT,
-  getCalendarCanvasWidthStyle,
+  getCalendarCanvasWidth,
   getCalendarDateColumnScrollLeft,
   getCalendarDayColumnWidth,
+  getCalendarScrollLeftForDayOffset,
+  getCalendarScrollOffsetInDays,
   getRenderedCalendarDayColumnWidth,
   getCalendarViewTransitionTarget,
   getCalendarWindowDates,
@@ -102,10 +104,28 @@ test("seven complete dates fit the available viewport without a trailing gap", (
   );
 });
 
-test("the week canvas width follows its scroll container without a React measurement", () => {
+test("the measured week canvas keeps physical horizontal overflow", () => {
+  const viewportWidth = 1100;
+  const canvasWidth = getCalendarCanvasWidth({
+    dayCount: CALENDAR_WINDOW_DAY_COUNT,
+    viewportWidth,
+  });
+
+  assert.equal(canvasWidth, 7328);
+  assert.ok(canvasWidth > viewportWidth);
   assert.equal(
-    getCalendarCanvasWidthStyle(CALENDAR_WINDOW_DAY_COUNT),
-    "max(4668px, calc(700cqw - 372px))",
+    getRenderedCalendarDayColumnWidth({
+      dayCount: CALENDAR_WINDOW_DAY_COUNT,
+      scrollWidth: canvasWidth,
+    }),
+    getCalendarDayColumnWidth(viewportWidth),
+  );
+  assert.equal(
+    getCalendarCanvasWidth({
+      dayCount: CALENDAR_WINDOW_DAY_COUNT,
+      viewportWidth: 0,
+    }),
+    4668,
   );
 });
 
@@ -136,30 +156,44 @@ test("stretching calendar columns keeps the same rendered date anchored", () => 
   );
 });
 
-test("calendar navigation wins over an in-flight sidebar resize restore", () => {
-  assert.equal(
-    shouldCancelCalendarResizeRestore({
-      targetDate: "2026-07-27",
-      visibleStartDate: "2026-08-03",
-      forcePosition: false,
-    }),
-    true,
+test("sidebar resizing preserves a fractional day scroll offset", () => {
+  const initialDayColumnWidth = 196.84375;
+  const resizedDayColumnWidth = 153.42857142857142;
+  const initialScrollLeft = 4894;
+  const dayOffset = getCalendarScrollOffsetInDays({
+    scrollLeft: initialScrollLeft,
+    dayColumnWidth: initialDayColumnWidth,
+  });
+  const resizedScrollLeft = getCalendarScrollLeftForDayOffset({
+    dayOffset,
+    dayColumnWidth: resizedDayColumnWidth,
+  });
+
+  assert.ok(dayOffset > 24 && dayOffset < 25);
+  assert.ok(resizedScrollLeft > 24 * resizedDayColumnWidth);
+  assert.ok(resizedScrollLeft < 25 * resizedDayColumnWidth);
+  assert.ok(
+    Math.abs(
+      getCalendarScrollOffsetInDays({
+        scrollLeft: resizedScrollLeft,
+        dayColumnWidth: resizedDayColumnWidth,
+      }) - dayOffset,
+    ) < 1e-10,
   );
+});
+
+test("only explicit navigation cancels an in-flight sidebar resize restore", () => {
   assert.equal(
     shouldCancelCalendarResizeRestore({
-      targetDate: "2026-08-03",
-      visibleStartDate: "2026-08-03",
-      forcePosition: true,
-    }),
-    true,
-  );
-  assert.equal(
-    shouldCancelCalendarResizeRestore({
-      targetDate: "2026-08-03",
-      visibleStartDate: "2026-08-03",
       forcePosition: false,
     }),
     false,
+  );
+  assert.equal(
+    shouldCancelCalendarResizeRestore({
+      forcePosition: true,
+    }),
+    true,
   );
 });
 
