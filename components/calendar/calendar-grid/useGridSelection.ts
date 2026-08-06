@@ -1,4 +1,4 @@
-import {
+import { 
   useCallback,
   useEffect,
   useRef,
@@ -6,10 +6,10 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { RoomAvailability } from "@/lib/rooms";
 import { CALENDAR_SLOT_MINUTES, localDateTimeToUtc, serializeUtcInstant } from "@/lib/time";
-import type { BookingAnchor } from "@/components/calendar/booking-popover/BookingPopover";
 import { getSelectionBounds, MAX_SELECTION_SLOTS } from "./calendar-grid-utils";
+import type { RoomAvailability } from "@/lib/rooms";
+import type { BookingAnchor } from "@/components/calendar/booking-popover/BookingPopover";
 import type { BookingSelection, DragSelection } from "./types";
 
 type CompletedGridSelection = {
@@ -297,6 +297,17 @@ export function useGridSelection({
         endIndex,
       };
       scheduleMovingDraft({ origin: selection, current: currentSelection });
+      // Re-anchor the open editor at every slot change, not only on pointer-up.
+      // The draft card and its form therefore travel together while the user
+      // moves the booking instead of leaving the form over the old position.
+      const anchor = getSelectionAnchor(
+        currentSelection.date,
+        currentSelection.startIndex,
+        currentSelection.endIndex,
+      );
+      if (anchor) {
+        updateSelection({ ...currentSelection, anchor });
+      }
     }, (wasCancelled) => {
       if (moveAnimationFrameRef.current !== null) {
         cancelAnimationFrame(moveAnimationFrameRef.current);

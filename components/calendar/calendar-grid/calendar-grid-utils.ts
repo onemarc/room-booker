@@ -1,6 +1,6 @@
-import type { ScheduleBooking } from "@/lib/bookings";
 import { OFFICE_CLOSE_HOUR, OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import { CALENDAR_SLOT_MINUTES, getZonedDateIso, getZonedDateTimeParts } from "@/lib/time";
+import type { ScheduleBooking } from "@/lib/bookings";
 import type { CalendarGridSelection, DragSelection } from "./types";
 
 export const SLOT_COUNT = ((OFFICE_CLOSE_HOUR - OFFICE_OPEN_HOUR) * 60) / CALENDAR_SLOT_MINUTES;
