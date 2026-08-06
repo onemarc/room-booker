@@ -1,0 +1,48 @@
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: room_booker
+      POSTGRES_USER: room_booker
+      POSTGRES_PASSWORD: room_booker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U room_booker -d room_booker"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - room-booker-postgres:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://room_booker:room_booker@database:5432/room_booker
+      DATABASE_SSL: "false"
+      SESSION_SECRET: local-compose-session-secret-change-before-production
+      SESSION_TTL_DAYS: "7"
+      APP_URL: http://localhost:3000
+      OFFICE_TIME_ZONE: Europe/Kyiv
+      OFFICE_OPEN_HOUR: "9"
+      OFFICE_CLOSE_HOUR: "19"
+      EMAIL_CONFIRMATION_REQUIRED: "true"
+      NOTIFY_BEFORE_MINUTES: "10"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    ports:
+      - "3000:3000"
+
+volumes:
+  room-booker-postgres:
