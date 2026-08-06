@@ -9,6 +9,7 @@ export function Modal({
   children,
   onClose,
   closeDisabled = false,
+  overlayOpen = false,
   size = "large",
 }: {
   title: string;
@@ -16,6 +17,7 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
+  overlayOpen?: boolean;
   size?: "small" | "medium" | "large";
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -89,7 +91,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center bg-[rgba(20,29,24,0.42)] p-5 backdrop-blur-[2px] max-[640px]:p-2.5"
+      className="modal-overlay-enter fixed inset-0 z-100 grid place-items-center bg-[rgba(20,29,24,0.42)] p-5 backdrop-blur-[2px] max-[640px]:p-2.5"
       role="presentation"
       onPointerDown={(event) => {
         if (event.target === event.currentTarget && !closeDisabled) {
@@ -99,12 +101,13 @@ export function Modal({
     >
       <div
         className={[
-          "relative flex max-h-[min(92vh,860px)] w-full flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_28px_80px_rgba(20,35,26,0.26)]",
+          "modal-panel-enter relative flex w-full flex-col rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_28px_80px_rgba(20,35,26,0.26)]",
+          overlayOpen ? "overflow-visible" : "overflow-hidden",
           size === "large"
-            ? "max-w-[920px]"
+            ? "h-[min(640px,92vh)] max-h-[min(92vh,860px)] max-w-[920px]"
             : size === "small"
-              ? "max-w-[420px]"
-              : "max-w-[590px]",
+              ? "max-h-[min(92vh,860px)] max-w-[420px]"
+              : "max-h-[min(92vh,860px)] max-w-[590px]",
         ].join(" ")}
         ref={panelRef}
         role="dialog"
