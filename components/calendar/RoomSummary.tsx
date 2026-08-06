@@ -80,7 +80,7 @@ export function RoomSummary({
               </span>
             </>
           ) : (
-            "No available 30-minute slots on this date"
+            "No available slots on this date"
           )}
         </span>
       </span>
