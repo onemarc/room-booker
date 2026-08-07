@@ -1,15 +1,31 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { FiChevronDown } from "react-icons/fi";
 import { CapacityFilter } from "@/components/calendar/CapacityFilter";
 import { RoomSummary } from "@/components/calendar/RoomSummary";
 import type { RoomAvailability } from "@/lib/rooms";
 
+type RoomMenuPosition = {
+  top: number;
+  left: number;
+  width: number;
+};
+
 export function RoomSelector({
   rooms,
   selectedRoomId,
   timeZone,
+  compactOnSmallScreen = false,
   isLoading,
   minimumCapacity,
   onSelectRoom,
@@ -18,6 +34,7 @@ export function RoomSelector({
   rooms: RoomAvailability[];
   selectedRoomId: string;
   timeZone: string;
+  compactOnSmallScreen?: boolean;
   isLoading: boolean;
   minimumCapacity: number;
   onSelectRoom: (roomId: string) => void;
@@ -25,8 +42,12 @@ export function RoomSelector({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [menuPosition, setMenuPosition] = useState<RoomMenuPosition | null>(
+    null,
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const listId = useId();
   const selectedIndex = Math.max(
@@ -34,6 +55,44 @@ export function RoomSelector({
     rooms.findIndex((room) => room.id === selectedRoomId),
   );
   const selectedRoom = rooms[selectedIndex];
+
+  // The phone header scrolls horizontally, so the menu uses viewport coordinates
+  // and is portaled to body instead of being clipped by that scroll container.
+  const updateMenuPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) {
+      return;
+    }
+
+    const triggerBounds = trigger.getBoundingClientRect();
+    const width = Math.max(0, Math.min(360, window.innerWidth - 28));
+    const maxLeft = Math.max(14, window.innerWidth - width - 14);
+
+    setMenuPosition({
+      top: triggerBounds.bottom + 9,
+      left: Math.min(Math.max(14, triggerBounds.left), maxLeft),
+      width,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    updateMenuPosition();
+    const frame = requestAnimationFrame(updateMenuPosition);
+    const handleScroll = () => updateMenuPosition();
+
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", handleScroll, true);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [isOpen, updateMenuPosition]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -43,7 +102,8 @@ export function RoomSelector({
     function dismissOnOutsidePointer(event: PointerEvent) {
       if (
         event.target instanceof Node &&
-        !rootRef.current?.contains(event.target)
+        !rootRef.current?.contains(event.target) &&
+        !menuRef.current?.contains(event.target)
       ) {
         setIsOpen(false);
       }
@@ -123,11 +183,21 @@ export function RoomSelector({
 
   return (
     <div
-      className="relative w-fit min-w-0 max-w-[240px]"
+      className={[
+        "relative w-fit min-w-0 max-w-[240px]",
+        compactOnSmallScreen
+          ? "max-[1200px]:max-w-[180px] max-[1200px]:shrink-0"
+          : "",
+      ].join(" ")}
       ref={rootRef}
     >
       <button
-        className="group flex min-h-12 w-auto cursor-pointer items-center justify-start gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-[#36433a] transition-colors duration-150 hover:bg-[#f0f3f0] focus-visible:bg-[#f0f3f0] aria-expanded:bg-[#edf2ee]"
+        className={[
+          "group flex min-h-12 w-auto max-w-full cursor-pointer items-center justify-start gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-[#36433a] transition-colors duration-150 hover:bg-[#f0f3f0] focus-visible:bg-[#f0f3f0] aria-expanded:bg-[#edf2ee]",
+          compactOnSmallScreen
+            ? "max-[1200px]:gap-1.5 max-[1200px]:px-1.5"
+            : "",
+        ].join(" ")}
         type="button"
         ref={triggerRef}
         aria-haspopup="listbox"
@@ -144,7 +214,12 @@ export function RoomSelector({
             {selectedRoom?.name ?? "No rooms"}
           </strong>
           {selectedRoom ? (
-            <small className="overflow-hidden text-[10px] font-normal tracking-[0.01em] text-ellipsis whitespace-nowrap text-[#7b857d]">
+            <small
+              className={[
+                "overflow-hidden text-[10px] font-normal tracking-[0.01em] text-ellipsis whitespace-nowrap text-[#7b857d]",
+                compactOnSmallScreen ? "max-[760px]:hidden" : "",
+              ].join(" ")}
+            >
               Floor {selectedRoom.floor} · {selectedRoom.capacity}{" "}
               {selectedRoom.capacity === 1 ? "seat" : "seats"}
             </small>
@@ -162,10 +237,17 @@ export function RoomSelector({
         )}
       </button>
 
-      {isOpen ? (
-        <div
-          className="absolute top-[calc(100%+9px)] left-0 z-100 w-[min(360px,calc(100vw-28px))] overflow-hidden rounded-[14px] border border-[#d5ddd6] bg-[var(--surface)] shadow-[0_20px_55px_rgba(28,43,34,0.16)]"
-        >
+      {isOpen && menuPosition && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed z-100 overflow-hidden rounded-[14px] border border-[#d5ddd6] bg-[var(--surface)] shadow-[0_20px_55px_rgba(28,43,34,0.16)]"
+              ref={menuRef}
+              style={{
+                top: menuPosition.top,
+                left: menuPosition.left,
+                width: menuPosition.width,
+              }}
+            >
           <div className="flex items-center justify-between gap-4 border-b border-[#e4e9e5] px-3.5 py-2.5">
             <span className="text-sm font-[700] text-[#2c3730]">
               Choose a room
@@ -219,8 +301,10 @@ export function RoomSelector({
             );
             })}
           </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
