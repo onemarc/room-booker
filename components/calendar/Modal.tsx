@@ -101,7 +101,7 @@ export function Modal({
     >
       <div
         className={[
-          "modal-panel-enter relative flex w-full flex-col rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_28px_80px_rgba(20,35,26,0.26)]",
+          "modal-panel-enter relative flex min-w-0 w-full flex-col rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_28px_80px_rgba(20,35,26,0.26)] [overflow-wrap:anywhere]",
           overlayOpen ? "overflow-visible" : "overflow-hidden",
           size === "large"
             ? "h-[min(640px,92vh)] max-h-[min(92vh,860px)] max-w-[920px]"
