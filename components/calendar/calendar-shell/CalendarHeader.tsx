@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { FaDoorOpen } from "react-icons/fa6";
 import { FiChevronLeft, FiChevronRight, FiMenu } from "react-icons/fi";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -14,7 +17,7 @@ const HEADER_CLASS = [
 ].join(" ");
 
 const TEXT_BUTTON_CLASS = [
-  "h-[34px] cursor-pointer whitespace-nowrap rounded-lg border-0 bg-transparent px-[9px]",
+  "inline-flex h-[34px] cursor-pointer appearance-none items-center whitespace-nowrap rounded-lg border-0 bg-transparent px-[9px]",
   "text-[13px] font-[620] text-[#4b5750] hover:bg-[#f0f3f0] hover:text-[var(--ink)]",
   "max-[1060px]:px-[7px]",
 ].join(" ");
@@ -49,6 +52,7 @@ type CalendarHeaderProps = {
   isSidebarOpen: boolean;
   displayName: string;
   periodLabel: string;
+  activeDate: string;
   view: CalendarView;
   timeZone: string;
   rooms: RoomAvailability[];
@@ -60,7 +64,6 @@ type CalendarHeaderProps = {
   onToday: () => void;
   onNavigate: (direction: -1 | 1) => void;
   onChangeView: (view: CalendarView) => void;
-  onOpenMyBookings: () => void;
   onSelectRoom: (roomId: string) => void;
   onMinimumCapacityChange: (value: number) => void;
   onOpenBooking: () => void;
@@ -72,6 +75,7 @@ export function CalendarHeader({
   isSidebarOpen,
   displayName,
   periodLabel,
+  activeDate,
   view,
   timeZone,
   rooms,
@@ -83,11 +87,19 @@ export function CalendarHeader({
   onToday,
   onNavigate,
   onChangeView,
-  onOpenMyBookings,
   onSelectRoom,
   onMinimumCapacityChange,
   onOpenBooking,
 }: CalendarHeaderProps) {
+  const router = useRouter();
+  const myBookingsHref =
+    "/my-bookings?view=" +
+    view +
+    "&date=" +
+    activeDate +
+    "&roomId=" +
+    selectedRoomId;
+
   return (
     <header className={HEADER_CLASS}>
       <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] max-[1060px]:gap-[3px] max-[760px]:flex-none">
@@ -127,7 +139,11 @@ export function CalendarHeader({
           GMT+3
         </span>
         <span className="h-[23px] w-px flex-none bg-[#d7ddd8]" aria-hidden="true" />
-        <button className={TEXT_BUTTON_CLASS} type="button" onClick={onToday}>
+        <button
+          className={TEXT_BUTTON_CLASS}
+          type="button"
+          onClick={onToday}
+        >
           Today
         </button>
 
@@ -171,7 +187,7 @@ export function CalendarHeader({
         <button
           className={TEXT_BUTTON_CLASS}
           type="button"
-          onClick={onOpenMyBookings}
+          onClick={() => router.push(myBookingsHref)}
         >
           My bookings
         </button>
