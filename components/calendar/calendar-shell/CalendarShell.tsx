@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { MyBookingsModal } from "@/components/calendar/my-bookings-modal/MyBookingsModal";
 import { BookingFormModal } from "@/components/calendar/booking-form-modal/BookingFormModal";
 import { CalendarGrid, type CalendarGridHandle, type CalendarGridSelection } from "@/components/calendar/calendar-grid/CalendarGrid";
 import { BookingPopover, type BookingEditorTarget } from "@/components/calendar/booking-popover/BookingPopover";
 import { getCalendarEventPrefetchPeriodDates, getCalendarViewTransitionTarget, type VisibleCalendarRange } from "@/components/calendar/calendar-grid/calendar-window";
-import { DEFAULT_BOOKING_COLOR, type BookingColor, type OwnedBooking, type ScheduleBooking, type ScheduleResponse } from "@/lib/bookings";
+import { DEFAULT_BOOKING_COLOR, type BookingColor, type ScheduleBooking, type ScheduleResponse } from "@/lib/bookings";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import {
   addCalendarDays,
@@ -32,6 +31,8 @@ type RoomsResponse = {
 
 type ScheduleLoadingMode = "blocking" | "background";
 
+const CALENDAR_SYNC_INTERVAL_MILLISECONDS = 15_000;
+
 const CALENDAR_SHELL_CLASS = [
   "flex h-screen min-h-[560px] w-full overflow-hidden bg-[var(--surface)]",
   "supports-[height:100dvh]:h-dvh",
@@ -52,6 +53,8 @@ export function CalendarShell({
   confirmationStatus,
   initialNow,
   initialActiveDate,
+  initialView,
+  initialRoomId,
   initialRooms,
   initialBookings,
 }: {
@@ -60,6 +63,8 @@ export function CalendarShell({
   confirmationStatus: "success" | "invalid" | null;
   initialNow: string;
   initialActiveDate: string;
+  initialView: CalendarView;
+  initialRoomId?: string;
   initialRooms: RoomAvailability[];
   initialBookings: ScheduleBooking[];
 }) {
@@ -71,16 +76,22 @@ export function CalendarShell({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [visibleMiniCalendarMonth, setVisibleMiniCalendarMonth] =
     useState<string | null>(null);
-  const [view, setView] = useState<CalendarView>("week");
+  const [view, setView] = useState<CalendarView>(initialView);
   const [gridTargetDate, setGridTargetDate] = useState(() =>
-    getMondayStart(initialActiveDate),
+    initialView === "day"
+      ? initialActiveDate
+      : getMondayStart(initialActiveDate),
   );
   const [visibleGridRange, setVisibleGridRange] =
     useState<VisibleCalendarRange>(() => {
-      const startDate = getMondayStart(initialActiveDate);
+      const startDate =
+        initialView === "day"
+          ? initialActiveDate
+          : getMondayStart(initialActiveDate);
       return {
         startDate,
-        endDate: addCalendarDays(startDate, 6),
+        endDate:
+          initialView === "day" ? startDate : addCalendarDays(startDate, 6),
       };
     });
   const [isGridViewPositioning, setIsGridViewPositioning] =
@@ -91,8 +102,9 @@ export function CalendarShell({
   const calendarGridRef = useRef<CalendarGridHandle>(null);
   const [rooms, setRooms] = useState(initialRooms);
   const [minimumCapacity, setMinimumCapacity] = useState(1);
+  const selectedInitialRoomId = initialRoomId ?? initialRooms[0]?.id ?? "";
   const [selectedRoomId, setSelectedRoomId] = useState(
-    initialRooms[0]?.id ?? "",
+    selectedInitialRoomId,
   );
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [roomError, setRoomError] = useState("");
@@ -105,20 +117,21 @@ export function CalendarShell({
     useState(initialBookings);
   const [scheduleResultKey, setScheduleResultKey] = useState(
     `${OFFICE_TIME_ZONE}:week:${initialSchedulePeriodDates.join(",")}:${
-      initialRooms[0]?.id ?? ""
+      selectedInitialRoomId
     }`,
   );
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
+  const isScheduleLoadingRef = useRef(false);
   const [scheduleLoadingMode, setScheduleLoadingMode] =
     // The server already supplied the first room's schedule. The browser may
     // reconcile it with a request using a different display timezone, but
     // that request must not blank bookings that are already renderable.
     useState<ScheduleLoadingMode>("background");
+  const scheduleLoadingModeRef = useRef<ScheduleLoadingMode>("background");
   const [scheduleError, setScheduleError] = useState("");
   const [scheduleRefreshVersion, setScheduleRefreshVersion] =
     useState(0);
   const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
-  const [isMyBookingsOpen, setIsMyBookingsOpen] = useState(false);
   const [isResendingConfirmation, setIsResendingConfirmation] =
     useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState("");
@@ -175,6 +188,14 @@ export function CalendarShell({
   useEffect(() => {
     activeDateRef.current = activeDate;
   }, [activeDate]);
+
+  useEffect(() => {
+    isScheduleLoadingRef.current = isScheduleLoading;
+  }, [isScheduleLoading]);
+
+  useEffect(() => {
+    scheduleLoadingModeRef.current = scheduleLoadingMode;
+  }, [scheduleLoadingMode]);
 
   useEffect(() => {
     const narrowLayout = window.matchMedia("(max-width: 760px)");
@@ -275,6 +296,7 @@ export function CalendarShell({
     }
 
     const controller = new AbortController();
+    const requestIsBackground = scheduleLoadingModeRef.current === "background";
 
     async function loadSchedule() {
       setIsScheduleLoading(true);
@@ -296,6 +318,7 @@ export function CalendarShell({
             });
             const response = await fetch(`/api/bookings?${searchParams}`, {
               signal: controller.signal,
+              cache: "no-store",
               headers: {
                 Accept: "application/json",
               },
@@ -337,6 +360,14 @@ export function CalendarShell({
           return;
         }
 
+        // Polling and horizontal prefetch are best-effort. Keep the last
+        // confirmed schedule visible when a background request fails, so a
+        // transient network/database problem never makes the calendar appear
+        // empty or erase a booking the user just created.
+        if (requestIsBackground) {
+          return;
+        }
+
         setScheduleBookings([]);
         setScheduleResultKey(scheduleRequestKey);
         setScheduleError(
@@ -362,6 +393,45 @@ export function CalendarShell({
     timeZone,
     view,
   ]);
+
+  useEffect(() => {
+    if (!selectedRoomId) {
+      return;
+    }
+
+    const refreshSchedule = () => {
+      if (
+        document.visibilityState !== "visible" ||
+        isScheduleLoadingRef.current
+      ) {
+        return;
+      }
+
+      // The API is the source of truth for bookings created in another tab or
+      // by another user. Poll only while visible and reconcile in the
+      // background so scrolling and an open editor are not interrupted.
+      setScheduleLoadingMode("background");
+      setScheduleRefreshVersion((current) => current + 1);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSchedule();
+      }
+    };
+    const intervalId = window.setInterval(
+      refreshSchedule,
+      CALENDAR_SYNC_INTERVAL_MILLISECONDS,
+    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", refreshSchedule);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", refreshSchedule);
+    };
+  }, [selectedRoomId]);
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.id === selectedRoomId),
@@ -555,13 +625,8 @@ export function CalendarShell({
       );
     });
     selectActiveDate(date);
+    setScheduleRefreshVersion((current) => current + 1);
     setIsBookingFormOpen(false);
-  }
-
-  function handleBookingCancelled(booking: OwnedBooking) {
-    setScheduleBookings((current) =>
-      current.filter((candidate) => candidate.id !== booking.id),
-    );
   }
 
   function handleBookingSaved({
@@ -582,6 +647,8 @@ export function CalendarShell({
           new Date(right.startAt).getTime(),
       );
     });
+    setScheduleLoadingMode("background");
+    setScheduleRefreshVersion((current) => current + 1);
     closeBookingEditor();
   }
 
@@ -589,6 +656,8 @@ export function CalendarShell({
     setScheduleBookings((current) =>
       current.filter((candidate) => candidate.id !== bookingId),
     );
+    setScheduleLoadingMode("background");
+    setScheduleRefreshVersion((current) => current + 1);
     closeBookingEditor();
   }
 
@@ -624,6 +693,11 @@ export function CalendarShell({
           isSidebarOpen={isSidebarOpen}
           displayName={displayName}
           periodLabel={periodLabel}
+          activeDate={
+            view === "week"
+              ? visibleGridRange.startDate
+              : gridTargetDate
+          }
           view={view}
           timeZone={timeZone}
           rooms={rooms}
@@ -635,10 +709,6 @@ export function CalendarShell({
           onToday={goToToday}
           onNavigate={navigatePeriod}
           onChangeView={changeCalendarView}
-          onOpenMyBookings={() => {
-            closeBookingEditor();
-            setIsMyBookingsOpen(true);
-          }}
           onSelectRoom={selectRoom}
           onMinimumCapacityChange={setMinimumCapacity}
           onOpenBooking={() => {
@@ -791,20 +861,6 @@ export function CalendarShell({
         />
       ) : null}
 
-      {isMyBookingsOpen ? (
-        <MyBookingsModal
-          timeZone={timeZone}
-          view={view}
-          onClose={() => setIsMyBookingsOpen(false)}
-          onCancelled={handleBookingCancelled}
-          onNavigate={({ roomId, date, view: targetView }) => {
-            selectRoom(roomId);
-            setView(targetView);
-            selectActiveDate(date, targetView);
-            setIsMyBookingsOpen(false);
-          }}
-        />
-      ) : null}
     </main>
   );
 }
