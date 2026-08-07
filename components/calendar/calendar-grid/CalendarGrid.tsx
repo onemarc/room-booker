@@ -385,7 +385,13 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
             <div
               className={[
                 "flex min-w-0 flex-col items-center justify-center border-r border-b border-[var(--grid-line)] bg-[var(--surface)] leading-none",
-                date === today || date === activeDate
+                // `activeDate` persists for navigation and the MiniCalendar;
+                // only the draft selection should keep a non-today header
+                // green after a cell interaction is completed.
+                date === today ||
+                (selectedGridSelection !== null &&
+                  date === selectedGridSelection.date &&
+                  date === activeDate)
                   ? "text-[#315841]"
                   : "text-[#b8bab8]",
               ]
@@ -566,17 +572,23 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                       >
                         <strong
                           className={[
-                            "block overflow-hidden text-xs leading-4 font-[700] text-ellipsis whitespace-nowrap",
-                            isThirtyMinuteBooking ? "-translate-y-px" : "",
+                            "block min-w-0 text-xs font-[700] whitespace-nowrap",
+                            isThirtyMinuteBooking
+                              ? "-translate-y-px leading-[17px]"
+                              : "leading-4",
                           ].join(" ")}
                         >
-                          {booking.title}
+                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                            {booking.title}
+                          </span>
                         </strong>
                         {showBookingTime ? (
                           <span
                             className={[
                               "block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80",
-                              isThirtyMinuteBooking ? "max-[820px]:hidden" : "",
+                              isThirtyMinuteBooking
+                                ? "-mt-0.5 max-[820px]:hidden"
+                                : "",
                             ].join(" ")}
                           >
                             {bookingTime}
