@@ -378,9 +378,12 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
           style={gridCanvasStyle}
         >
           <div
-            className="sticky left-0 z-9 border-r border-[var(--grid-line)] bg-[linear-gradient(to_bottom,var(--surface)_0_calc(100%_-_6px),transparent_calc(100%_-_6px)_100%)]"
-            aria-hidden="true"
-          />
+            className="relative sticky left-0 z-9 border-r border-[var(--grid-line)] bg-[linear-gradient(to_bottom,var(--surface)_0_calc(100%_-_6px),transparent_calc(100%_-_6px)_100%)]"
+          >
+            <span className="absolute right-[9px] bottom-[9px] whitespace-nowrap text-[11px] text-[#778179]">
+              GMT+3
+            </span>
+          </div>
           {dates.map((date) => (
             <div
               className={[

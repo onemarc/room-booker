@@ -135,10 +135,6 @@ export function CalendarHeader({
       </div>
 
       <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1060px]:gap-[3px] max-[760px]:w-full max-[760px]:pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <span className="whitespace-nowrap text-[11px] text-[#778179]">
-          GMT+3
-        </span>
-        <span className="h-[23px] w-px flex-none bg-[#d7ddd8]" aria-hidden="true" />
         <button
           className={TEXT_BUTTON_CLASS}
           type="button"
