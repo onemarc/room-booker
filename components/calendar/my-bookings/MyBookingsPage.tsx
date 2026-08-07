@@ -179,7 +179,7 @@ function BookingRow({
       }}
     >
       <button
-        className="grid min-h-[94px] w-full cursor-pointer grid-cols-[100px_minmax(0,1fr)] items-stretch border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[88px_minmax(0,1fr)] max-[640px]:grid-cols-1 max-[640px]:min-h-0"
+        className="grid min-h-[94px] w-full cursor-pointer grid-cols-[100px_minmax(0,1fr)] items-stretch border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[88px_minmax(0,1fr)] max-[640px]:grid-cols-[68px_minmax(0,1fr)] max-[640px]:min-h-[72px]"
         type="button"
         onClick={() => onNavigate(booking)}
       >
@@ -187,14 +187,14 @@ function BookingRow({
           className={[
             "grid place-content-center justify-items-center border-r px-2.5 py-3 text-center",
             isHighlighted ? "border-white" : "border-[#edf0ee]",
-            "max-[900px]:px-2 max-[640px]:grid-cols-[auto_auto] max-[640px]:justify-center max-[640px]:gap-2 max-[640px]:border-r-0 max-[640px]:border-b max-[640px]:py-3",
+            "max-[900px]:px-2 max-[640px]:grid-cols-1 max-[640px]:gap-0 max-[640px]:border-r max-[640px]:border-b-0 max-[640px]:px-1.5 max-[640px]:py-2",
           ].join(" ")}
         >
           <span
             className={[
               "text-[16px] leading-none font-[500]",
               isHighlighted ? "text-[#3d624e]" : "text-[#b7b9b8]",
-              "max-[900px]:text-[15px] max-[640px]:text-[14px]",
+              "max-[900px]:text-[15px] max-[640px]:text-[12px]",
             ].join(" ")}
           >
             {formatBookingWeekday(booking, timeZone)}
@@ -203,30 +203,30 @@ function BookingRow({
             className={[
               "text-[38px] leading-[0.95] font-[650] tracking-[-0.055em]",
               isHighlighted ? "text-[#3d624e]" : "text-[#b7b9b8]",
-              "max-[900px]:text-[34px] max-[640px]:text-[28px]",
+              "max-[900px]:text-[34px] max-[640px]:text-[26px]",
             ].join(" ")}
           >
             {formatBookingDay(booking, timeZone)}
           </strong>
         </span>
-        <span className="grid min-w-0 grid-cols-[minmax(100px,0.82fr)_minmax(100px,0.9fr)_minmax(130px,1.2fr)_auto] items-center gap-x-4 pr-3.5 pl-5 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-3 max-[900px]:gap-y-2.5 max-[640px]:grid-cols-[minmax(0,1fr)_auto] max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-3.5">
-          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-2 max-[640px]:text-[13px]`}>
+        <span className="grid min-w-0 grid-cols-[minmax(100px,0.82fr)_minmax(100px,0.9fr)_minmax(130px,1.2fr)_auto] items-center gap-x-4 pr-3.5 pl-5 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-3 max-[900px]:gap-y-2.5 max-[640px]:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto] max-[640px]:gap-x-2 max-[640px]:gap-y-0 max-[640px]:px-2.5 max-[640px]:py-2">
+          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <LuClock4
-              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[18px]"
+              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
             />
             <span className="truncate">{formatBookingTime(booking, timeZone)}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-2 max-[640px]:text-[13px]`}>
+          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <LuDoorOpen
-              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[18px]"
+              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
             />
             <span className="truncate">{booking.roomName}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2 overflow-hidden pr-[48px] text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-2 max-[640px]:pr-9 max-[640px]:text-[13px]`}>
+          <span className={`flex min-w-0 items-center gap-2 overflow-hidden pr-[48px] text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:pr-1 max-[640px]:text-[11px]`}>
             <HiOutlinePencilSquare
-              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[18px]"
+              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
             />
             <span className="truncate">
@@ -239,7 +239,7 @@ function BookingRow({
             </span>
           </span>
           <FiArrowRight
-            className="size-[20px] justify-self-end text-[#87918b] max-[1100px]:size-[19px] max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[17px]"
+            className="size-[20px] justify-self-end text-[#87918b] max-[1100px]:size-[19px] max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[15px]"
             aria-hidden="true"
           />
         </span>
