@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FaDoorOpen } from "react-icons/fa6";
 import { FiChevronLeft, FiChevronRight, FiMenu } from "react-icons/fi";
+import { RiArrowGoBackLine } from "react-icons/ri";
 import { LogoutButton } from "@/components/LogoutButton";
 import { RoomSelector } from "@/components/calendar/RoomSelector";
 import { NotificationBell } from "@/components/calendar/NotificationBell";
@@ -12,46 +13,60 @@ import type { CalendarView } from "@/lib/time";
 const HEADER_CLASS = [
   "z-30 flex min-h-[58px] flex-none items-center justify-between",
   "gap-[18px] bg-[var(--surface)] px-[13px]",
-  "max-[1060px]:gap-2 max-[1060px]:px-2",
-  "max-[760px]:min-h-[98px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-1 max-[760px]:py-1.5",
+  "max-[1200px]:gap-2 max-[1200px]:px-2",
+  "max-[1060px]:gap-1 max-[1060px]:px-1.5",
+  "max-[760px]:min-h-[58px] max-[760px]:flex-row max-[760px]:items-center max-[760px]:justify-between max-[760px]:gap-2 max-[760px]:overflow-x-auto max-[760px]:py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
 ].join(" ");
 
 const TEXT_BUTTON_CLASS = [
   "inline-flex h-[34px] cursor-pointer appearance-none items-center whitespace-nowrap rounded-lg border-0 bg-transparent px-[9px]",
   "text-[13px] font-[620] text-[#4b5750] hover:bg-[#f0f3f0] hover:text-[var(--ink)]",
-  "max-[1060px]:px-[7px]",
+  "max-[1200px]:px-1.5 max-[1060px]:px-1",
 ].join(" ");
 
 const ICON_BUTTON_CLASS = [
   "grid h-[34px] w-[30px] flex-none cursor-pointer place-items-center rounded-lg border-0",
   "bg-transparent text-[#526058] hover:bg-[#edf1ed] hover:text-[var(--ink)] [&>svg]:size-4",
+  "max-[1200px]:h-8 max-[1200px]:w-7 max-[1060px]:h-[30px] max-[1060px]:w-[26px] max-[760px]:h-[34px] max-[760px]:w-[30px]",
 ].join(" ");
 
 const MENU_BUTTON_CLASS = [
   "grid size-[34px] flex-none cursor-pointer place-items-center rounded-lg border-0",
   "bg-transparent text-[#526058] hover:bg-[#edf1ed] hover:text-[var(--ink)] [&>svg]:size-5",
+  "max-[1200px]:size-8 max-[1060px]:size-[30px] max-[760px]:size-[34px]",
 ].join(" ");
 
 const DISPLAY_NAME_CLASS = [
   "flex h-[34px] max-w-[125px] items-center overflow-hidden rounded-lg px-[9px]",
   "text-[13px] font-[620] text-ellipsis whitespace-nowrap text-[#4b5750]",
-  "max-[1060px]:px-[7px]",
-  "max-[1060px]:max-w-[86px]",
+  "max-[1200px]:max-w-[100px] max-[1200px]:px-1.5",
+  "max-[1060px]:max-w-[86px] max-[1060px]:px-1",
 ].join(" ");
 
 const VIEW_BUTTON_CLASS = (isActive: boolean) =>
   [
     "h-7 cursor-pointer whitespace-nowrap rounded-lg border-0 px-2 text-[13px] font-[620]",
-    "max-[1060px]:px-[7px]",
+    "max-[1200px]:h-6 max-[1200px]:px-1.5 max-[1200px]:text-xs max-[1060px]:px-1 max-[760px]:h-7 max-[760px]:px-2 max-[760px]:text-[13px]",
     isActive
       ? "bg-[var(--accent-soft)] text-[#204f39] hover:bg-[var(--accent-soft)] hover:text-[#204f39]"
       : "bg-transparent text-[#4b5750] hover:bg-[#f0f3f0] hover:text-[var(--ink)]",
   ].join(" ");
 
+const LONG_MONTH_NAME_PATTERN =
+  /January|February|March|April|May|June|July|August|September|October|November|December/g;
+
+function getCompactPeriodLabel(periodLabel: string) {
+  return periodLabel.replace(
+    LONG_MONTH_NAME_PATTERN,
+    (monthName) => monthName.slice(0, 3),
+  );
+}
+
 type CalendarHeaderProps = {
   isSidebarOpen: boolean;
   displayName: string;
   periodLabel: string;
+  isTodayVisible: boolean;
   activeDate: string;
   view: CalendarView;
   timeZone: string;
@@ -75,6 +90,7 @@ export function CalendarHeader({
   isSidebarOpen,
   displayName,
   periodLabel,
+  isTodayVisible,
   activeDate,
   view,
   timeZone,
@@ -99,10 +115,11 @@ export function CalendarHeader({
     activeDate +
     "&roomId=" +
     selectedRoomId;
+  const compactPeriodLabel = getCompactPeriodLabel(periodLabel);
 
   return (
     <header className={HEADER_CLASS}>
-      <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] max-[1060px]:gap-[3px] max-[760px]:flex-none">
+      <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] overflow-hidden max-[1200px]:gap-1 max-[1060px]:gap-0.5 max-[760px]:min-w-max max-[760px]:flex-none max-[760px]:overflow-visible">
         {!isSidebarOpen ? (
           <>
             <button
@@ -115,8 +132,11 @@ export function CalendarHeader({
             </button>
           </>
         ) : null}
-        <strong className="overflow-hidden text-[17px] font-[680] text-ellipsis whitespace-nowrap text-[#2d3731]">
-          {periodLabel}
+        <strong className="min-w-0 flex-[0_1_auto] overflow-hidden text-[17px] font-[680] text-ellipsis whitespace-nowrap text-[#2d3731] max-[760px]:text-[16px]">
+          <span className="max-[760px]:hidden">{periodLabel}</span>
+          <span className="hidden max-[760px]:inline">
+            {compactPeriodLabel}
+          </span>
         </strong>
         {!isSidebarOpen ? (
           <>
@@ -125,6 +145,7 @@ export function CalendarHeader({
               rooms={rooms}
               selectedRoomId={selectedRoomId}
               timeZone={timeZone}
+              compactOnSmallScreen
               isLoading={isRoomsLoading}
               minimumCapacity={minimumCapacity}
               onSelectRoom={onSelectRoom}
@@ -134,14 +155,22 @@ export function CalendarHeader({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1060px]:gap-[3px] max-[760px]:w-full max-[760px]:pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <button
-          className={TEXT_BUTTON_CLASS}
-          type="button"
-          onClick={onToday}
-        >
-          Today
-        </button>
+      <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1200px]:flex-[0_1_auto] max-[1200px]:max-w-full max-[1200px]:gap-1 max-[1200px]:[scrollbar-width:none] max-[1200px]:[&::-webkit-scrollbar]:hidden max-[1060px]:gap-0.5 max-[760px]:min-w-max max-[760px]:ml-auto max-[760px]:w-auto max-[760px]:flex-none max-[760px]:max-w-none max-[760px]:gap-0.5 max-[760px]:overflow-visible max-[760px]:pb-0">
+        {!isTodayVisible ? (
+          <button
+            className={`${TEXT_BUTTON_CLASS} max-[1200px]:h-8 max-[1200px]:text-xs max-[1060px]:h-7 max-[1060px]:px-1 max-[760px]:h-[34px] max-[760px]:w-[30px] max-[760px]:justify-center max-[760px]:px-0 max-[760px]:text-[13px] [&>svg]:size-4`}
+            type="button"
+            aria-label="Back to today"
+            title="Back to today"
+            onClick={onToday}
+          >
+            <span className="max-[760px]:hidden">Today</span>
+            <RiArrowGoBackLine
+              className="hidden max-[760px]:block"
+              aria-hidden="true"
+            />
+          </button>
+        ) : null}
 
         <div className="flex items-center" role="group" aria-label="Calendar period">
           <button
@@ -172,10 +201,16 @@ export function CalendarHeader({
               className={VIEW_BUTTON_CLASS(view === mode)}
               type="button"
               key={mode}
+              aria-label={`${mode === "day" ? "Day" : "Week"} view`}
               aria-pressed={view === mode}
               onClick={() => onChangeView(mode)}
             >
-              {mode === "day" ? "Day" : "Week"}
+              <span className="max-[760px]:hidden">
+                {mode === "day" ? "Day" : "Week"}
+              </span>
+              <span className="hidden max-[760px]:inline">
+                {mode === "day" ? "D" : "W"}
+              </span>
             </button>
           ))}
         </div>
@@ -183,18 +218,23 @@ export function CalendarHeader({
         <button
           className={TEXT_BUTTON_CLASS}
           type="button"
+          aria-label="My bookings"
+          title="My bookings"
           onClick={() => router.push(myBookingsHref)}
         >
-          My bookings
+          <span className="max-[760px]:hidden">My bookings</span>
+          <span className="hidden max-[760px]:inline">My</span>
         </button>
         <button
-          className="flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
+          className="flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4 max-[1200px]:gap-1 max-[1200px]:px-2 max-[760px]:gap-1 max-[760px]:px-2"
           type="button"
           disabled={!selectedRoomId || !canBook}
           title={canBook ? "Create a booking" : "Confirm your email before booking"}
           onClick={onOpenBooking}
         >
-          <FaDoorOpen aria-hidden="true" /> Book room
+          <FaDoorOpen className="max-[760px]:hidden" aria-hidden="true" />
+          <span className="max-[760px]:hidden">Book room</span>
+          <span className="hidden max-[760px]:inline">Book</span>
         </button>
         <span
           className="h-[23px] w-px flex-none bg-[#d7ddd8]"
