@@ -3,6 +3,7 @@ export type BookingEndNotification = {
   title: string;
   roomName: string;
   endsAt: string;
+  nextBookingTitle: string | null;
 };
 
 export type NotificationsResponse = {
