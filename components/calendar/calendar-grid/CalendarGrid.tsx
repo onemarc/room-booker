@@ -500,11 +500,27 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                     const canEdit =
                       booking.isOwner &&
                       new Date(booking.startAt).getTime() > Date.now();
+                    const hasEnded =
+                      new Date(booking.endAt).getTime() <= Date.now();
+                    const isThirtyMinuteBooking =
+                      new Date(booking.endAt).getTime() -
+                        new Date(booking.startAt).getTime() ===
+                      30 * 60 * 1000;
+                    const bookingTime = `${formatTimeInZone(
+                      booking.startAt,
+                      timeZone,
+                    )}–${formatTimeInZone(booking.endAt, timeZone)}`;
+                    const showBookingTime =
+                      isThirtyMinuteBooking || height >= 9;
+                    const showBookingOwner = height >= 9;
 
                     return (
                       <button
                         className={[
-                          "pointer-events-auto absolute right-1 left-1 z-2 overflow-hidden rounded-[7px] border px-2 py-1 text-left shadow-[0_2px_8px_rgba(34,53,42,0.08)]",
+                          "pointer-events-auto absolute right-1 left-1 z-2 flex flex-col justify-start overflow-hidden rounded-[7px] px-2 py-1 text-left",
+                          booking.isOwner
+                            ? "border shadow-[0_2px_8px_rgba(34,53,42,0.08)]"
+                            : "border-0 shadow-[0_2px_8px_rgba(34,53,42,0.08),inset_0_0_8px_rgba(34,53,42,0.10)]",
                           canEdit
                             ? "cursor-pointer hover:brightness-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]"
                             : "cursor-default",
@@ -516,7 +532,7 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                           backgroundColor: color.surface,
                           borderColor: color.border,
                           color: color.text,
-                          opacity: booking.isOwner ? 1 : 0.82,
+                          opacity: hasEnded ? 0.62 : booking.isOwner ? 1 : 0.82,
                         }}
                         type="button"
                         disabled={!canEdit}
@@ -526,10 +542,7 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                             ? `Edit ${booking.title}`
                             : `${booking.title} by ${booking.authorDisplayName}`
                         }
-                        title={`${booking.title} · ${booking.authorDisplayName} · ${formatTimeInZone(
-                          booking.startAt,
-                          timeZone,
-                        )}–${formatTimeInZone(booking.endAt, timeZone)}`}
+                        title={`${booking.title} · ${booking.authorDisplayName} · ${bookingTime}`}
                         onClick={(event) => {
                           event.stopPropagation();
                           if (!canEdit || !selectedRoom) {
@@ -554,7 +567,17 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                         <strong className="block overflow-hidden text-xs leading-4 font-[700] text-ellipsis whitespace-nowrap">
                           {booking.title}
                         </strong>
-                        {height >= 9 ? (
+                        {showBookingTime ? (
+                          <span
+                            className={[
+                              "block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80",
+                              isThirtyMinuteBooking ? "max-[820px]:hidden" : "",
+                            ].join(" ")}
+                          >
+                            {bookingTime}
+                          </span>
+                        ) : null}
+                        {showBookingOwner ? (
                           <span className="block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80">
                             {booking.authorDisplayName}
                           </span>
