@@ -11,10 +11,11 @@ export async function GET(request: Request) {
     const section = searchParams.get("section");
 
     if (section === "upcoming") {
-      const bookings = await listUpcomingBookings({
+      const result = await listUpcomingBookings({
         currentUserId: user.id,
+        cursor: searchParams.get("cursor") ?? undefined,
       });
-      return jsonResponse({ bookings, nextCursor: null });
+      return jsonResponse(result);
     }
 
     if (section === "past") {
