@@ -177,7 +177,6 @@ export function CalendarShell({
   const loadedScheduleSignature = useRef(initialScheduleSignature);
   const activeDate =
     selectedDate ?? getZonedDateIso(initialNow, timeZone);
-  const activeDateRef = useRef(activeDate);
   const today = getZonedDateIso(new Date(), timeZone);
   const roomsRequestKey = `${timeZone}:${activeDate}:${minimumCapacity}`;
   // Refresh versions make a deliberate retry distinct from an already-loaded
@@ -197,10 +196,6 @@ export function CalendarShell({
   const scheduleRequestSignature = `${scheduleRequestKey}:${scheduleRefreshVersion}`;
 
   useEffect(() => {
-    activeDateRef.current = activeDate;
-  }, [activeDate]);
-
-  useEffect(() => {
     isScheduleLoadingRef.current = isScheduleLoading;
   }, [isScheduleLoading]);
 
@@ -211,25 +206,18 @@ export function CalendarShell({
   useEffect(() => {
     const narrowLayout = window.matchMedia("(max-width: 760px)");
 
-    function applyPhoneDefaults() {
+    function applyPhoneLayout() {
       if (narrowLayout.matches) {
-        // A single-day canvas is immediately usable on a phone; Week remains
-        // available as a deliberate horizontally scrollable view.
-        const phoneDate = activeDateRef.current;
+        // Phone layout changes presentation only. Keep the requested or
+        // user-selected view intact so Week never silently becomes Day.
         setIsSidebarOpen(false);
-        setView("day");
-        setGridTargetDate(phoneDate);
-        setVisibleGridRange({
-          startDate: phoneDate,
-          endDate: phoneDate,
-        });
       }
     }
 
-    applyPhoneDefaults();
-    narrowLayout.addEventListener("change", applyPhoneDefaults);
+    applyPhoneLayout();
+    narrowLayout.addEventListener("change", applyPhoneLayout);
     return () =>
-      narrowLayout.removeEventListener("change", applyPhoneDefaults);
+      narrowLayout.removeEventListener("change", applyPhoneLayout);
   }, []);
 
   useEffect(() => {
@@ -463,6 +451,9 @@ export function CalendarShell({
     view === "week" ? visibleGridRange.startDate : gridTargetDate,
     view,
   );
+  const isTodayVisible =
+    today >= visibleGridRange.startDate &&
+    today <= visibleGridRange.endDate;
 
   function navigatePeriod(direction: -1 | 1) {
     const nextDate = addCalendarDays(
@@ -704,6 +695,7 @@ export function CalendarShell({
           isSidebarOpen={isSidebarOpen}
           displayName={displayName}
           periodLabel={periodLabel}
+          isTodayVisible={isTodayVisible}
           activeDate={
             view === "week"
               ? visibleGridRange.startDate
