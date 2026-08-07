@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiBell, FiX } from "react-icons/fi";
 import { formatUtcInstant } from "@/lib/time";
-import type { BookingEndNotification, NotificationsResponse } from "@/lib/notifications";
+import type {
+  BookingEndNotification,
+  NotificationsResponse,
+} from "@/lib/notification-types";
 
 const POLL_INTERVAL_MILLISECONDS = 30_000;
 
@@ -118,7 +121,7 @@ export function NotificationBell({ timeZone }: { timeZone: string }) {
 
       {activeNotification ? (
         <aside
-          className="fixed right-4 bottom-4 z-100 w-[min(380px,calc(100vw-24px))] rounded-2xl border border-[#cad5cc]
+          className="fixed right-4 bottom-4 z-100 w-[min(380px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-[#cad5cc]
                     bg-white p-4 shadow-[0_22px_70px_rgba(20,35,26,0.24)] max-[640px]:right-3 max-[640px]:bottom-3"
           role="status"
           aria-live="polite"
@@ -131,15 +134,33 @@ export function NotificationBell({ timeZone }: { timeZone: string }) {
               <strong className="block text-sm font-[720] text-[#28342c]">
                 Your booking ends soon
               </strong>
-              <p className="mt-1 mb-0 text-xs leading-5 text-[#657168]">
-                {activeNotification.title} in {activeNotification.roomName}
+              <p className="mt-1 mb-0 text-xs leading-5 text-[#657168] [overflow-wrap:anywhere]">
+                <span
+                  className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
+                  title={activeNotification.title}
+                >
+                  {activeNotification.title}
+                </span>{" "}in {activeNotification.roomName}
                 {" ends at "}
                 {formatUtcInstant(activeNotification.endsAt, timeZone, {
                   hour: "2-digit",
                   minute: "2-digit",
                   hourCycle: "h23",
                 })}
-                . The next room slot is occupied.
+                {activeNotification.nextBookingTitle ? (
+                  <>
+                    {". Your next booking, "}
+                    <span
+                      className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
+                      title={activeNotification.nextBookingTitle}
+                    >
+                      “{activeNotification.nextBookingTitle}”
+                    </span>
+                    {" starts immediately after this one."}
+                  </>
+                ) : (
+                  ". The next room slot is occupied."
+                )}
               </p>
             </div>
             <button
