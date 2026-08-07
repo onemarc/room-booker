@@ -1,16 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { FiArrowRight } from "react-icons/fi";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
 import { TbCalendarCancel } from "react-icons/tb";
 import { HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuClock4, LuDoorOpen } from "react-icons/lu";
-import { Modal } from "@/components/calendar/Modal";
-import { formatUtcInstant, getZonedDateIso, type CalendarView } from "@/lib/time";
+import { LogoutButton } from "@/components/LogoutButton";
+import { NotificationBell } from "@/components/calendar/NotificationBell";
+import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
+import { detectBrowserTimeZone, formatUtcInstant, getZonedDateIso, type CalendarView } from "@/lib/time";
 import type { MyBookingsResponse, OwnedBooking } from "@/lib/bookings";
 
 type BookingSection = "upcoming" | "past";
 type CancellationScope = "occurrence" | "series";
+
+const NORMAL_LINK_CLASS = [
+  "inline-flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border-0 bg-transparent px-[9px]",
+  "text-[13px] font-[620] text-[#4b5750] no-underline hover:bg-[#f0f3f0] hover:text-[var(--ink)]",
+  "max-[640px]:px-[7px]",
+].join(" ");
+
+function subscribeToBrowserTimeZone() {
+  return () => {};
+}
 
 function formatBookingDate(booking: OwnedBooking, timeZone: string) {
   return formatUtcInstant(
@@ -71,6 +85,17 @@ type BookingMonthGroup = {
   label: string;
   bookings: OwnedBooking[];
 };
+
+function mergeBookingPages(
+  current: OwnedBooking[],
+  additions: OwnedBooking[],
+) {
+  const merged = new Map(current.map((booking) => [booking.id, booking]));
+  for (const booking of additions) {
+    merged.set(booking.id, booking);
+  }
+  return [...merged.values()];
+}
 
 function groupBookingsByMonth(
   bookings: OwnedBooking[],
@@ -148,60 +173,60 @@ function BookingRow({
 
   return (
     <article
-      className="group relative overflow-hidden rounded-[14px] border bg-white transition-colors hover:border-[#315b46] focus-within:border-[#315b46]"
+      className="group relative overflow-hidden rounded-[13px] border bg-white transition-colors hover:border-[#315b46] focus-within:border-[#315b46]"
       style={{
         borderColor: isHighlighted ? "#315b46" : "#c9ceca",
       }}
     >
       <button
-        className="grid min-h-[104px] w-full cursor-pointer grid-cols-[112px_minmax(0,1fr)] items-stretch border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[96px_minmax(0,1fr)] max-[640px]:grid-cols-1 max-[640px]:min-h-0"
+        className="grid min-h-[94px] w-full cursor-pointer grid-cols-[100px_minmax(0,1fr)] items-stretch border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[88px_minmax(0,1fr)] max-[640px]:grid-cols-1 max-[640px]:min-h-0"
         type="button"
         onClick={() => onNavigate(booking)}
       >
         <span
           className={[
-            "grid place-content-center justify-items-center border-r px-3 py-4 text-center",
+            "grid place-content-center justify-items-center border-r px-2.5 py-3 text-center",
             isHighlighted ? "border-white" : "border-[#edf0ee]",
             "max-[900px]:px-2 max-[640px]:grid-cols-[auto_auto] max-[640px]:justify-center max-[640px]:gap-2 max-[640px]:border-r-0 max-[640px]:border-b max-[640px]:py-3",
           ].join(" ")}
         >
           <span
             className={[
-              "text-[18px] leading-none font-[500]",
+              "text-[16px] leading-none font-[500]",
               isHighlighted ? "text-[#3d624e]" : "text-[#b7b9b8]",
-              "max-[900px]:text-[16px] max-[640px]:text-[14px]",
+              "max-[900px]:text-[15px] max-[640px]:text-[14px]",
             ].join(" ")}
           >
             {formatBookingWeekday(booking, timeZone)}
           </span>
           <strong
             className={[
-              "text-[44px] leading-[0.95] font-[650] tracking-[-0.055em]",
+              "text-[38px] leading-[0.95] font-[650] tracking-[-0.055em]",
               isHighlighted ? "text-[#3d624e]" : "text-[#b7b9b8]",
-              "max-[900px]:text-[38px] max-[640px]:text-[30px]",
+              "max-[900px]:text-[34px] max-[640px]:text-[28px]",
             ].join(" ")}
           >
             {formatBookingDay(booking, timeZone)}
           </strong>
         </span>
-        <span className="grid min-w-0 grid-cols-[minmax(110px,0.82fr)_minmax(110px,0.9fr)_minmax(140px,1.2fr)_auto] items-center gap-x-5 pr-4 pl-6 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-4 max-[900px]:gap-y-3 max-[640px]:grid-cols-[minmax(0,1fr)_auto] max-[640px]:gap-3 max-[640px]:px-4 max-[640px]:py-4">
-          <span className={`flex min-w-0 items-center gap-2.5 text-[16px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[15px] max-[640px]:gap-2 max-[640px]:text-[14px]`}>
+        <span className="grid min-w-0 grid-cols-[minmax(100px,0.82fr)_minmax(100px,0.9fr)_minmax(130px,1.2fr)_auto] items-center gap-x-4 pr-3.5 pl-5 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-3 max-[900px]:gap-y-2.5 max-[640px]:grid-cols-[minmax(0,1fr)_auto] max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-3.5">
+          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-2 max-[640px]:text-[13px]`}>
             <LuClock4
-              className="size-[23px] flex-none text-[#151918] max-[1100px]:size-5 max-[640px]:size-[18px]"
+              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[18px]"
               aria-hidden="true"
             />
             <span className="truncate">{formatBookingTime(booking, timeZone)}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2.5 text-[16px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[15px] max-[640px]:gap-2 max-[640px]:text-[14px]`}>
+          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-2 max-[640px]:text-[13px]`}>
             <LuDoorOpen
-              className="size-[24px] flex-none text-[#151918] max-[1100px]:size-5 max-[640px]:size-[18px]"
+              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[18px]"
               aria-hidden="true"
             />
             <span className="truncate">{booking.roomName}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2.5 overflow-hidden pr-[52px] text-[16px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[15px] max-[640px]:gap-2 max-[640px]:pr-10 max-[640px]:text-[14px]`}>
+          <span className={`flex min-w-0 items-center gap-2 overflow-hidden pr-[48px] text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-2 max-[640px]:pr-9 max-[640px]:text-[13px]`}>
             <HiOutlinePencilSquare
-              className="size-[24px] flex-none text-[#151918] max-[1100px]:size-5 max-[640px]:size-[18px]"
+              className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[18px]"
               aria-hidden="true"
             />
             <span className="truncate">
@@ -214,14 +239,14 @@ function BookingRow({
             </span>
           </span>
           <FiArrowRight
-            className="size-[22px] justify-self-end text-[#87918b] max-[1100px]:size-5 max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[18px]"
+            className="size-[20px] justify-self-end text-[#87918b] max-[1100px]:size-[19px] max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[17px]"
             aria-hidden="true"
           />
         </span>
       </button>
       {isUpcoming ? (
         <button
-          className="pointer-events-none absolute top-1/2 right-[48px] grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-[#fff5f5] text-[#8a4646] opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 disabled:cursor-wait disabled:opacity-50 [&>svg]:size-[23px]"
+          className="pointer-events-none absolute top-1/2 right-[42px] grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-[#fff5f5] text-[#8a4646] opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 disabled:cursor-wait disabled:opacity-50 [&>svg]:size-[20px]"
           type="button"
           aria-label={`Cancel ${booking.title}`}
           disabled={cancellationPending}
@@ -288,7 +313,7 @@ function ConfirmationDialog({
 
   return (
     <div
-      className="absolute -inset-px z-20 grid place-items-center overflow-hidden rounded-[19px] bg-[rgba(23,32,27,0.42)] p-5 backdrop-blur-[2px]"
+      className="fixed inset-0 z-100 grid place-items-center overflow-hidden bg-[rgba(23,32,27,0.42)] p-5 backdrop-blur-[2px] max-[640px]:p-3"
       role="presentation"
       onKeyDown={handleKeyDown}
     >
@@ -377,27 +402,26 @@ function ConfirmationDialog({
   );
 }
 
-export function MyBookingsModal({
-  timeZone,
+export function MyBookingsPage({
+  calendarHref,
+  displayName,
   view,
-  onClose,
-  onNavigate,
-  onCancelled,
 }: {
-  timeZone: string;
+  calendarHref: string;
+  displayName: string;
   view: CalendarView;
-  onClose: () => void;
-  onNavigate: (details: {
-    roomId: string;
-    date: string;
-    view: CalendarView;
-  }) => void;
-  onCancelled: (booking: OwnedBooking) => void;
 }) {
+  const router = useRouter();
+  const timeZone = useSyncExternalStore(
+    subscribeToBrowserTimeZone,
+    detectBrowserTimeZone,
+    () => OFFICE_TIME_ZONE,
+  );
   const [section, setSection] =
     useState<BookingSection>("upcoming");
   const [upcoming, setUpcoming] = useState<OwnedBooking[]>([]);
   const [past, setPast] = useState<OwnedBooking[]>([]);
+  const [upcomingCursor, setUpcomingCursor] = useState<string | null>(null);
   const [pastCursor, setPastCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -419,13 +443,14 @@ export function MyBookingsModal({
       setLoadError("");
 
       try {
-        // The two independent sections can load together when the modal opens.
+        // The two independent sections can load together when the page opens.
         const [upcomingData, pastData] = await Promise.all([
           requestBookingSection("upcoming", controller.signal),
           requestBookingSection("past", controller.signal),
         ]);
 
         setUpcoming(upcomingData.bookings ?? []);
+        setUpcomingCursor(upcomingData.nextCursor ?? null);
         setPast(pastData.bookings ?? []);
         setPastCursor(pastData.nextCursor ?? null);
       } catch (error) {
@@ -449,8 +474,10 @@ export function MyBookingsModal({
     return () => controller.abort();
   }, [retryVersion]);
 
-  async function loadMorePast() {
-    if (!pastCursor || isLoadingMore) {
+  async function loadMoreBookings(targetSection: BookingSection) {
+    const cursor =
+      targetSection === "upcoming" ? upcomingCursor : pastCursor;
+    if (!cursor || isLoadingMore) {
       return;
     }
 
@@ -460,27 +487,26 @@ export function MyBookingsModal({
 
     try {
       const data = await requestBookingSection(
-        "past",
+        targetSection,
         controller.signal,
-        pastCursor,
+        cursor,
       );
-      setPast((current) => {
-        // Cursor pages can overlap after a booking changes; de-duplicate by ID
-        // before appending so the history list remains stable.
-        const merged = new Map(
-          current.map((booking) => [booking.id, booking]),
+      if (targetSection === "upcoming") {
+        setUpcoming((current) =>
+          mergeBookingPages(current, data.bookings ?? []),
         );
-        for (const booking of data.bookings ?? []) {
-          merged.set(booking.id, booking);
-        }
-        return [...merged.values()];
-      });
-      setPastCursor(data.nextCursor ?? null);
+        setUpcomingCursor(data.nextCursor ?? null);
+      } else {
+        setPast((current) =>
+          mergeBookingPages(current, data.bookings ?? []),
+        );
+        setPastCursor(data.nextCursor ?? null);
+      }
     } catch (error) {
       setLoadError(
         error instanceof Error
           ? error.message
-          : "Past bookings could not be loaded.",
+          : "More bookings could not be loaded.",
       );
     } finally {
       setIsLoadingMore(false);
@@ -527,7 +553,6 @@ export function MyBookingsModal({
             : booking.id !== bookingToCancel.id,
         ),
       );
-      onCancelled(bookingToCancel);
       setBookingToCancel(null);
     } catch {
       setCancellationError(
@@ -544,14 +569,44 @@ export function MyBookingsModal({
   const firstUpcomingBookingId = upcoming[0]?.id;
 
   return (
-    <Modal
-      title="My bookings"
-      description={`Dates and times are shown in ${timeZone}.`}
-      closeDisabled={isCancelling}
-      overlayOpen={Boolean(bookingToCancel)}
-      onClose={onClose}
-    >
-      <div className="flex min-h-0 flex-1 flex-col">
+    <main className="flex min-h-screen flex-col bg-[var(--surface-soft)]">
+      <header className="flex min-h-[58px] flex-none items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--surface)] px-6 max-[640px]:px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            className={NORMAL_LINK_CLASS + " flex-none"}
+            href={calendarHref}
+          >
+            <FiArrowLeft aria-hidden="true" />
+            Calendar
+          </Link>
+          <span className="h-[23px] w-px flex-none bg-[#d7ddd8]" aria-hidden="true" />
+          <h1 className="m-0 overflow-hidden text-lg font-[700] text-ellipsis whitespace-nowrap text-[#2d3731]">
+            My bookings
+          </h1>
+        </div>
+
+        <div className="flex flex-none items-center gap-2 text-[11px] text-[#778179] max-[640px]:gap-1">
+          <span className="whitespace-nowrap">GMT+3</span>
+          <span className="mx-1 h-[23px] w-px bg-[#d7ddd8] max-[640px]:hidden" aria-hidden="true" />
+          <span
+            className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-[620] text-[#4b5750] max-[640px]:hidden"
+            title={displayName}
+          >
+            {displayName}
+          </span>
+          <NotificationBell timeZone={timeZone} />
+          <LogoutButton />
+        </div>
+      </header>
+
+      <section className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col px-6 py-7 max-[640px]:px-3 max-[640px]:py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_14px_42px_rgba(20,35,26,0.07)]">
+          <div className="flex flex-none items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5 max-[640px]:px-4 max-[640px]:py-4">
+            <p className="m-0 text-[13px] leading-5 text-[#6c776f]">
+              Dates and times are shown in {timeZone}.
+            </p>
+          </div>
+
         <div
           className="flex flex-none gap-1 border-b border-[var(--line)] px-6 pt-3 max-[640px]:px-4"
           role="tablist"
@@ -575,7 +630,11 @@ export function MyBookingsModal({
               {!isLoading ? (
                 <span className="ml-1.5 text-[11px] font-[650] text-[#8a948d]">
                   {item === "upcoming" ? upcoming.length : past.length}
-                  {item === "past" && pastCursor ? "+" : ""}
+                  {item === "upcoming" && upcomingCursor
+                    ? "+"
+                    : item === "past" && pastCursor
+                      ? "+"
+                      : ""}
                 </span>
               ) : null}
             </button>
@@ -589,7 +648,7 @@ export function MyBookingsModal({
               <span className="sr-only">Loading your bookings</span>
               {Array.from({ length: 3 }, (_, index) => (
                 <div
-                  className="h-[104px] animate-pulse rounded-[14px] border border-[#e3e8e4] bg-[#f4f7f4]"
+                  className="h-[94px] animate-pulse rounded-[13px] border border-[#e3e8e4] bg-[#f4f7f4]"
                   key={index}
                 />
               ))}
@@ -651,7 +710,7 @@ export function MyBookingsModal({
                         }
                         key={booking.id}
                         onNavigate={(selectedBooking) => {
-                          onNavigate({
+                          const searchParams = new URLSearchParams({
                             roomId: selectedBooking.roomId,
                             date: getZonedDateIso(
                               selectedBooking.startAt,
@@ -659,6 +718,7 @@ export function MyBookingsModal({
                             ),
                             view,
                           });
+                          router.push(`/calendar?${searchParams.toString()}`);
                         }}
                         onRequestCancellation={(selectedBooking) => {
                           setCancellationError("");
@@ -680,12 +740,12 @@ export function MyBookingsModal({
                 </p>
               ) : null}
 
-              {section === "past" && pastCursor ? (
+              {(section === "upcoming" ? upcomingCursor : pastCursor) ? (
                 <button
                   className="mx-auto mt-2 h-9 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-4 text-xs font-bold text-[var(--accent)] hover:bg-[#f3f7f4] disabled:cursor-wait disabled:opacity-55"
                   type="button"
                   disabled={isLoadingMore}
-                  onClick={() => void loadMorePast()}
+                  onClick={() => void loadMoreBookings(section)}
                 >
                   {isLoadingMore ? "Loading…" : "Load more"}
                 </button>
@@ -693,7 +753,6 @@ export function MyBookingsModal({
             </div>
           )}
         </div>
-      </div>
       </div>
 
       {bookingToCancel ? (
@@ -711,6 +770,9 @@ export function MyBookingsModal({
           onScopeChange={setCancellationScope}
         />
       ) : null}
-    </Modal>
+
+        </div>
+      </section>
+    </main>
   );
 }
