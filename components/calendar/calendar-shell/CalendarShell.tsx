@@ -158,6 +158,17 @@ export function CalendarShell({
     setPreviewBookingColor,
     setSelectedGridSelection,
   ]);
+  const cancelBookingDraft = useCallback(() => {
+    if (bookingEditorTarget?.mode === "create") {
+      // A grid click temporarily makes the draft date active. Cancelling the
+      // unsaved editor must return both controlled MiniCalendar values to the
+      // real current day instead of leaving the draft date selected.
+      const currentDate = getZonedDateIso(new Date(), timeZone);
+      setSelectedDate(currentDate);
+      setVisibleMiniCalendarMonth(startOfCalendarMonth(currentDate));
+    }
+    closeBookingEditor();
+  }, [bookingEditorTarget, closeBookingEditor, timeZone]);
   const initialRoomsSignature = `${OFFICE_TIME_ZONE}:${initialActiveDate}:1:0`;
   const loadedRoomsSignature = useRef(initialRoomsSignature);
   const initialScheduleSignature = `${OFFICE_TIME_ZONE}:week:${initialSchedulePeriodDates.join(",")}:${
@@ -834,7 +845,7 @@ export function CalendarShell({
           }
           target={bookingEditorTarget}
           timeZone={timeZone}
-          onClose={closeBookingEditor}
+          onClose={cancelBookingDraft}
           onSaved={handleBookingSaved}
           onDeleted={handleBookingDeleted}
           onColorChange={(color) => {
