@@ -564,7 +564,12 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                           });
                         }}
                       >
-                        <strong className="block overflow-hidden text-xs leading-4 font-[700] text-ellipsis whitespace-nowrap">
+                        <strong
+                          className={[
+                            "block overflow-hidden text-xs leading-4 font-[700] text-ellipsis whitespace-nowrap",
+                            isThirtyMinuteBooking ? "-translate-y-px" : "",
+                          ].join(" ")}
+                        >
                           {booking.title}
                         </strong>
                         {showBookingTime ? (
