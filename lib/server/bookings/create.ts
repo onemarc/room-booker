@@ -1,16 +1,13 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import type { ScheduleBooking } from "@/lib/bookings";
-import { withTransaction } from "@/lib/server/database";
-import {
-  HttpError,
-  isPostgresExclusionViolation,
-} from "@/lib/server/http";
 import { addCalendarDays } from "@/lib/time";
 import { toScheduleBooking } from "./serializers";
-import type { CreatedBookingRow, CreateBookingInput } from "./types";
 import { validateBookingInput } from "./validation";
+import { withTransaction } from "@/lib/server/database";
+import { HttpError, isPostgresExclusionViolation } from "@/lib/server/http";
+import type { ScheduleBooking } from "@/lib/bookings";
+import type { CreatedBookingRow, CreateBookingInput } from "./types";
 
 // Creation checks the room and its time conflict inside one transaction so the
 // validation result and inserted booking are based on the same database state.
@@ -59,57 +56,72 @@ export async function createBooking({
         );
       }
 
-      for (const occurrence of occurrences) {
-        const conflict = await client.query<{ id: string }>(
-          `SELECT id FROM bookings
-           WHERE room_id = $1 AND start_at < $3 AND end_at > $2
-           LIMIT 1`,
-          [first.roomId, occurrence.startAt, occurrence.endAt],
+      // Batch-check all occurrence intervals in a single query. The database's
+      // exclusion constraint (bookings_no_room_overlap) is the final safety net,
+      // but checking upfront gives the user a precise error before insertion.
+      const conflict = await client.query<{ has_conflict: boolean }>(
+        `SELECT EXISTS (
+          SELECT 1 FROM bookings b
+          INNER JOIN unnest($2::timestamptz[], $3::timestamptz[])
+            AS occ(occ_start, occ_end) ON true
+          WHERE b.room_id = $1
+            AND b.start_at < occ.occ_end
+            AND b.end_at > occ.occ_start
+        ) AS has_conflict`,
+        [
+          first.roomId,
+          occurrences.map((o) => o.startAt),
+          occurrences.map((o) => o.endAt),
+        ],
+      );
+      if (conflict.rows[0]?.has_conflict) {
+        throw new HttpError(
+          "One of the requested times is already occupied. Choose another interval.",
+          409,
+          undefined,
+          "slot_occupied",
         );
-        if (conflict.rows.length > 0) {
-          throw new HttpError(
-            "One of the requested times is already occupied. Choose another interval.",
-            409,
-            undefined,
-            "slot_occupied",
-          );
-        }
       }
 
-      let firstCreated: CreatedBookingRow | undefined;
-      for (const [recurrenceIndex, occurrence] of occurrences.entries()) {
-        const result = await client.query<CreatedBookingRow>(
-          `
-            WITH inserted_booking AS (
-              INSERT INTO bookings (
-                room_id, author_id, title, start_at, end_at, color,
-                series_id, recurrence_index
-              )
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-              RETURNING id, author_id, title, start_at, end_at, color
+      // Insert all occurrences in a single multi-row statement. Only the first
+      // occurrence is returned to the caller for immediate UI feedback.
+      const result = await client.query<CreatedBookingRow>(
+        `
+          WITH inserted AS (
+            INSERT INTO bookings (
+              room_id, author_id, title, start_at, end_at, color,
+              series_id, recurrence_index
             )
-            SELECT inserted_booking.id, inserted_booking.title,
-              users.display_name AS author_display_name,
-              inserted_booking.start_at, inserted_booking.end_at,
-              inserted_booking.color
-            FROM inserted_booking
-            INNER JOIN users ON users.id = inserted_booking.author_id
-          `,
-          [
-            first.roomId,
-            currentUserId,
-            occurrence.title,
-            occurrence.startAt,
-            occurrence.endAt,
-            occurrence.color,
-            seriesId,
-            seriesId ? recurrenceIndex : null,
-          ],
-        );
-        firstCreated ??= result.rows[0];
-      }
+            SELECT $1, $2,
+              unnest($3::text[]),
+              unnest($4::timestamptz[]),
+              unnest($5::timestamptz[]),
+              unnest($6::text[]),
+              $7,
+              unnest($8::int[])
+            RETURNING id, author_id, title, start_at, end_at, color
+          )
+          SELECT i.id, i.title,
+            u.display_name AS author_display_name,
+            i.start_at, i.end_at, i.color
+          FROM inserted i
+          INNER JOIN users u ON u.id = i.author_id
+          ORDER BY i.start_at
+          LIMIT 1
+        `,
+        [
+          first.roomId,
+          currentUserId,
+          occurrences.map((o) => o.title),
+          occurrences.map((o) => o.startAt),
+          occurrences.map((o) => o.endAt),
+          occurrences.map((o) => o.color),
+          seriesId,
+          occurrences.map((_, i) => (seriesId ? i : null)),
+        ],
+      );
 
-      return toScheduleBooking(firstCreated!);
+      return toScheduleBooking(result.rows[0]!);
     });
   } catch (error) {
     if (isPostgresExclusionViolation(error)) {
