@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatTimeInZone,
+  formatCalendarTimeZoneNotice,
+  formatGmtOffset,
   getBookingTimeViolation,
   getDayRangeUtc,
   intervalsOverlap,
@@ -64,7 +66,23 @@ test("user-local and Kyiv office times resolve to the same UTC instant", () => {
   );
 
   assert.equal(officeInstant.toISOString(), "2026-07-30T07:00:00.000Z");
+  assert.equal(formatTimeInZone(officeInstant, "Europe/Berlin"), "09:00");
   assert.equal(formatTimeInZone(officeInstant, "America/New_York"), "03:00");
+});
+
+test("calendar timezone notice names both zones for a different viewer", () => {
+  const instant = new Date("2026-07-30T07:00:00.000Z");
+
+  assert.equal(formatGmtOffset("Europe/Kyiv", instant), "GMT+3");
+  assert.equal(formatGmtOffset("Europe/Berlin", instant), "GMT+2");
+  assert.equal(
+    formatCalendarTimeZoneNotice("Europe/Berlin", instant),
+    "GMT+2 · Office GMT+3",
+  );
+  assert.equal(
+    formatCalendarTimeZoneNotice("Europe/Kyiv", instant),
+    "GMT+3",
+  );
 });
 
 test("a user-local day range converts to UTC across a daylight-saving boundary", () => {

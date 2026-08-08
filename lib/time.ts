@@ -180,6 +180,36 @@ export function detectBrowserTimeZone() {
   }
 }
 
+export function formatGmtOffset(
+  timeZone: string,
+  value: Date | string = new Date(),
+) {
+  const formatter = getDateTimeFormatter("en", {
+    timeZone: canonicalizeTimeZone(timeZone),
+    timeZoneName: "shortOffset",
+  });
+  const offset = formatter
+    .formatToParts(assertValidInstant(value))
+    .find((part) => part.type === "timeZoneName")?.value;
+
+  return offset ?? "GMT";
+}
+
+export function formatCalendarTimeZoneNotice(
+  timeZone: string,
+  value: Date | string = new Date(),
+) {
+  const userTimeZone = canonicalizeTimeZone(timeZone);
+  const officeTimeZone = canonicalizeTimeZone(OFFICE_TIME_ZONE);
+  const userOffset = formatGmtOffset(userTimeZone, value);
+
+  if (userTimeZone === officeTimeZone) {
+    return userOffset;
+  }
+
+  return `${userOffset} · Office ${formatGmtOffset(officeTimeZone, value)}`;
+}
+
 export function parseCalendarDate(value: string): CalendarDateParts {
   const match = ISO_DATE_PATTERN.exec(value);
 
