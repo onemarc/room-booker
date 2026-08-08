@@ -149,6 +149,7 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
     scrollViewportRef,
     setDateColumnRef,
   } = useInfiniteWeekScroll({
+    activeDate,
     targetDate,
     isSidebarOpen,
     positionRequestId,
