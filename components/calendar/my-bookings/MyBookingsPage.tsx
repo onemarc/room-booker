@@ -10,7 +10,7 @@ import { LuClock4, LuDoorOpen } from "react-icons/lu";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationBell } from "@/components/calendar/NotificationBell";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
-import { detectBrowserTimeZone, formatUtcInstant, getZonedDateIso, type CalendarView } from "@/lib/time";
+import { detectBrowserTimeZone, formatCalendarTimeZoneNotice, formatUtcInstant, getZonedDateIso, type CalendarView } from "@/lib/time";
 import type { MyBookingsResponse, OwnedBooking } from "@/lib/bookings";
 
 type BookingSection = "upcoming" | "past";
@@ -573,6 +573,7 @@ export function MyBookingsPage({
   const visibleBookings = section === "upcoming" ? upcoming : past;
   const bookingGroups = groupBookingsByMonth(visibleBookings, timeZone);
   const firstUpcomingBookingId = upcoming[0]?.id;
+  const timeZoneNotice = formatCalendarTimeZoneNotice(timeZone);
 
   return (
     <main className="flex min-h-screen flex-col bg-[var(--surface-soft)]">
@@ -596,6 +597,16 @@ export function MyBookingsPage({
 
         <div className="flex flex-none items-center gap-1 text-[11px] text-[#778179] max-[640px]:gap-0.5">
           <span
+            className="max-w-[190px] overflow-hidden text-ellipsis whitespace-nowrap px-1 text-[13px] text-[#6c776f] max-[640px]:max-w-[110px] max-[640px]:text-[11px]"
+            title={timeZoneNotice}
+          >
+            {timeZoneNotice}
+          </span>
+          <span
+            className="h-[23px] w-px flex-none bg-[#d7ddd8]"
+            aria-hidden="true"
+          />
+          <span
             className={DISPLAY_NAME_CLASS}
             title={displayName}
           >
@@ -608,12 +619,6 @@ export function MyBookingsPage({
 
       <section className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col px-6 py-7 max-[640px]:px-3 max-[640px]:py-4">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_14px_42px_rgba(20,35,26,0.07)]">
-          <div className="flex flex-none items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5 max-[640px]:px-4 max-[640px]:py-4">
-            <p className="m-0 text-[13px] leading-5 text-[#6c776f]">
-              Dates and times are shown in {timeZone} (GMT+3).
-            </p>
-          </div>
-
         <div
           className="flex flex-none gap-1 border-b border-[var(--line)] px-6 pt-3 max-[640px]:px-4"
           role="tablist"
