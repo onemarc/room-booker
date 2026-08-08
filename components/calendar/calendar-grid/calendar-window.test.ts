@@ -7,6 +7,7 @@ import {
   getCalendarDateColumnScrollLeft,
   getCalendarDayColumnWidth,
   getCalendarEventPrefetchPeriodDates,
+  getCalendarScrollLeftForCenteredDate,
   getCalendarScrollLeftForDayOffset,
   getCalendarScrollOffsetInDays,
   getRenderedCalendarDayColumnWidth,
@@ -93,6 +94,25 @@ test("Week positioning uses the rendered column width", () => {
       dayColumnWidth,
     }).startDate,
     "2026-08-03",
+  );
+});
+
+test("mobile Today positioning centers the requested date beside the time rail", () => {
+  assert.equal(
+    getCalendarScrollLeftForCenteredDate({
+      dateColumnScrollLeft: 1200,
+      viewportWidth: 420,
+      dayColumnWidth: 94,
+    }),
+    1068,
+  );
+  assert.equal(
+    getCalendarScrollLeftForCenteredDate({
+      dateColumnScrollLeft: 42,
+      viewportWidth: 120,
+      dayColumnWidth: 94,
+    }),
+    42,
   );
 });
 
