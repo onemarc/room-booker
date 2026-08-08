@@ -5,7 +5,9 @@ import {
   addCalendarDays,
   CALENDAR_SLOT_MINUTES,
   calendarDateToIso,
+  formatCalendarTimeZoneNotice,
   formatCalendarDay,
+  formatGmtOffset,
   formatTimeInZone,
   getZonedDateIso,
   getZonedDateTimeParts,
@@ -172,6 +174,8 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
     return () => window.clearInterval(intervalId);
   }, []);
   const today = getZonedDateIso(new Date(), timeZone);
+  const timeZoneNotice = formatCalendarTimeZoneNotice(timeZone);
+  const officeGmtOffset = formatGmtOffset(OFFICE_TIME_ZONE);
   const rows = useMemo(
     () => {
       const officeStart = localDateTimeToUtc(
@@ -381,8 +385,12 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
           <div
             className="relative sticky left-0 z-9 border-r border-[var(--grid-line)] bg-[linear-gradient(to_bottom,var(--surface)_0_calc(100%_-_6px),transparent_calc(100%_-_6px)_100%)]"
           >
-            <span className="absolute right-[9px] bottom-[9px] whitespace-nowrap text-[11px] text-[#778179]">
-              GMT+3
+            <span
+              className="absolute right-[9px] bottom-[9px] whitespace-nowrap text-[11px] text-[#778179]"
+              title={timeZoneNotice}
+              aria-label={timeZoneNotice}
+            >
+              {officeGmtOffset}
             </span>
           </div>
           {dates.map((date) => (
