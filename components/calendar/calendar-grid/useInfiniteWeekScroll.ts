@@ -210,6 +210,11 @@ export function useInfiniteWeekScroll({
     momentumStopAnchorDateRef.current = null;
   }, []);
 
+  // --- Trackpad momentum lock ---
+  // Trackpad inertia continues dispatching wheel/scroll events for hundreds of
+  // milliseconds after user input ends. When "Today" is clicked, we lock the
+  // viewport to the target date and absorb residual events. The lock releases
+  // only after 160ms of silence — each new inertial event resets the timer.
   const releaseMomentumStopAfterScrollSettles = useCallback(
     (anchorDate: string) => {
       if (momentumStopSettleTimerRef.current !== null) {
@@ -229,6 +234,12 @@ export function useInfiniteWeekScroll({
     [],
   );
 
+  // --- Multi-frame sidebar reflow protection ---
+  // Sidebar toggles change flexbox layout, causing the browser to dispatch
+  // synthetic scroll events during reflow. This 3-tier rAF cascade applies
+  // the anchor position, re-applies after layout settles, then holds a guard
+  // frame. The final extra guard catches the scroll event that browsers often
+  // dispatch *after* the frame where scrollLeft was assigned.
   const restoreDateAfterLayout = useCallback(
     (
       viewport: HTMLDivElement,

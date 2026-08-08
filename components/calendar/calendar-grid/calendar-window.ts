@@ -193,6 +193,13 @@ export function getCalendarCanvasWidth({
   );
 }
 
+// The CSS calc() expression sizes the 49-day canvas relative to the scroll
+// viewport so columns resize in the same layout pass as a sidebar toggle —
+// no ResizeObserver → React state → second render cycle needed.
+// viewportScale = 49/7 = 7 means the canvas occupies 700% of viewport width.
+// timeRailCorrection subtracts the extra 62px time rails that would appear
+// if each of the 7 viewport-widths had its own rail (only one is rendered).
+// Result: max(minimumWidth, 700% - 372px)
 export function getResponsiveCalendarCanvasWidth(dayCount: number) {
   const minimumWidth =
     CALENDAR_TIME_COLUMN_WIDTH + dayCount * CALENDAR_MIN_DAY_COLUMN_WIDTH;
