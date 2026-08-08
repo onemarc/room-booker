@@ -179,13 +179,16 @@ function BookingRow({
 
   return (
     <article
-      className="group relative overflow-hidden rounded-[13px] border bg-white transition-colors hover:border-[#315b46] focus-within:border-[#315b46]"
+      className="group relative overflow-hidden rounded-[13px] border bg-white
+                transition-colors hover:border-[#315b46] focus-within:border-[#315b46]"
       style={{
         borderColor: isHighlighted ? "#315b46" : "#c9ceca",
       }}
     >
       <button
-        className="grid min-h-[94px] w-full cursor-pointer grid-cols-[100px_minmax(0,1fr)] items-stretch border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[88px_minmax(0,1fr)] max-[640px]:grid-cols-[68px_minmax(0,1fr)] max-[640px]:min-h-[72px]"
+        className="grid min-h-[94px] w-full cursor-pointer grid-cols-[100px_minmax(0,1fr)] items-stretch
+                  border-0 bg-transparent p-0 text-left max-[900px]:grid-cols-[88px_minmax(0,1fr)]
+                  max-[640px]:grid-cols-[68px_minmax(0,1fr)] max-[640px]:min-h-[72px]"
         type="button"
         onClick={() => onNavigate(booking)}
       >
@@ -215,22 +218,28 @@ function BookingRow({
             {formatBookingDay(booking, timeZone)}
           </strong>
         </span>
-        <span className="grid min-w-0 grid-cols-[minmax(100px,0.82fr)_minmax(100px,0.9fr)_minmax(130px,1.2fr)_auto] items-center gap-x-4 pr-3.5 pl-5 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-3 max-[900px]:gap-y-2.5 max-[640px]:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto] max-[640px]:gap-x-2 max-[640px]:gap-y-0 max-[640px]:px-2.5 max-[640px]:py-2">
-          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
+        <span className="grid min-w-0 grid-cols-[minmax(100px,0.82fr)_minmax(100px,0.9fr)_minmax(130px,1.2fr)_auto] items-center gap-x-4
+                        pr-3.5 pl-5 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 max-[900px]:gap-x-3
+                        max-[900px]:gap-y-2.5 max-[640px]:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto] max-[640px]:gap-x-2
+                        max-[640px]:gap-y-0 max-[640px]:px-2.5 max-[640px]:py-2">
+          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] 
+                          ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <LuClock4
               className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
             />
             <span className="truncate">{formatBookingTime(booking, timeZone)}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
+          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500]
+                          ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <LuDoorOpen
               className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
             />
             <span className="truncate">{booking.roomName}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2 overflow-hidden pr-[48px] text-[15px] leading-tight font-[500] ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:pr-1 max-[640px]:text-[11px]`}>
+          <span className={`flex min-w-0 items-center gap-2 overflow-hidden pr-[48px] text-[15px] leading-tight font-[500]
+                          ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:pr-1 max-[640px]:text-[11px]`}>
             <HiOutlinePencilSquare
               className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
@@ -245,14 +254,18 @@ function BookingRow({
             </span>
           </span>
           <FiArrowRight
-            className="size-[20px] justify-self-end text-[#87918b] max-[1100px]:size-[19px] max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[15px]"
+            className="size-[20px] justify-self-end text-[#87918b] max-[1100px]:size-[19px]
+                      max-[900px]:row-span-2 max-[900px]:row-start-1 max-[640px]:row-span-1 max-[640px]:size-[15px]"
             aria-hidden="true"
           />
         </span>
       </button>
       {isUpcoming ? (
         <button
-          className="pointer-events-none absolute top-1/2 right-[42px] grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-[#fff5f5] text-[#8a4646] opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 disabled:cursor-wait disabled:opacity-50 [&>svg]:size-[20px]"
+          className="pointer-events-none absolute top-1/2 right-[42px] grid size-8 -translate-y-1/2 cursor-pointer
+                    place-items-center rounded-lg border-0 bg-[#fff5f5] text-[#8a4646] opacity-0 transition-opacity
+                    group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100
+                    disabled:cursor-wait disabled:opacity-50 [&>svg]:size-[20px]"
           type="button"
           aria-label={`Cancel ${booking.title}`}
           disabled={cancellationPending}
@@ -319,12 +332,14 @@ function ConfirmationDialog({
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center overflow-hidden bg-[rgba(23,32,27,0.42)] p-5 backdrop-blur-[2px] max-[640px]:p-3"
+      className="fixed inset-0 z-100 grid place-items-center overflow-hidden
+                bg-[rgba(23,32,27,0.42)] p-5 backdrop-blur-[2px] max-[640px]:p-3"
       role="presentation"
       onKeyDown={handleKeyDown}
     >
       <div
-        className="w-full max-w-[430px] rounded-2xl border border-[#d5ddd7] bg-white p-5 shadow-[0_22px_70px_rgba(20,35,26,0.25)]"
+        className="w-full max-w-[430px] rounded-2xl border border-[#d5ddd7]
+                  bg-white p-5 shadow-[0_22px_70px_rgba(20,35,26,0.25)]"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="cancel-booking-title"
@@ -386,7 +401,8 @@ function ConfirmationDialog({
         ) : null}
         <div className="mt-5 flex justify-end gap-2">
           <button
-            className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4 text-[13px] font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4
+                      text-[13px] font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             ref={cancelButtonRef}
             disabled={isPending}
@@ -395,7 +411,8 @@ function ConfirmationDialog({
             Keep booking
           </button>
           <button
-            className="h-10 cursor-pointer rounded-[9px] border border-[#9c3d3d] bg-[#9c3d3d] px-4 text-[13px] font-[680] text-white hover:bg-[#873434] disabled:cursor-wait disabled:opacity-55"
+            className="h-10 cursor-pointer rounded-[9px] border border-[#9c3d3d] bg-[#9c3d3d] px-4 
+                      text-[13px] font-[680] text-white hover:bg-[#873434] disabled:cursor-wait disabled:opacity-55"
             type="button"
             disabled={isPending}
             onClick={onConfirm}
@@ -577,7 +594,8 @@ export function MyBookingsPage({
 
   return (
     <main className="flex min-h-screen flex-col bg-[var(--surface-soft)]">
-      <header className="flex min-h-[58px] flex-none items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--surface)] px-6 max-[640px]:px-4">
+      <header className="flex min-h-[58px] flex-none items-center justify-between gap-4
+                        border-b border-[var(--line)] bg-[var(--surface)] px-6 max-[640px]:px-4">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             className={NORMAL_LINK_CLASS + " flex-none"}
@@ -597,7 +615,8 @@ export function MyBookingsPage({
 
         <div className="flex flex-none items-center gap-1 text-[11px] text-[#778179] max-[640px]:gap-0.5">
           <span
-            className="max-w-[190px] overflow-hidden text-ellipsis whitespace-nowrap px-1 text-[13px] text-[#6c776f] max-[640px]:max-w-[110px] max-[640px]:text-[11px]"
+            className="max-w-[190px] overflow-hidden text-ellipsis whitespace-nowrap px-1
+                      text-[13px] text-[#6c776f] max-[640px]:max-w-[110px] max-[640px]:text-[11px]"
             title={timeZoneNotice}
           >
             {timeZoneNotice}
@@ -617,8 +636,10 @@ export function MyBookingsPage({
         </div>
       </header>
 
-      <section className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col px-6 py-7 max-[640px]:px-3 max-[640px]:py-4">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_14px_42px_rgba(20,35,26,0.07)]">
+      <section className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 
+                        flex-col px-6 py-7 max-[640px]:px-3 max-[640px]:py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px]
+                      border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_14px_42px_rgba(20,35,26,0.07)]">
         <div
           className="flex flex-none gap-1 border-b border-[var(--line)] px-6 pt-3 max-[640px]:px-4"
           role="tablist"
@@ -675,7 +696,8 @@ export function MyBookingsPage({
                   {loadError}
                 </p>
                 <button
-                  className="mt-3 h-9 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-3 text-xs font-bold text-[var(--accent)] hover:bg-[#f3f7f4]"
+                  className="mt-3 h-9 cursor-pointer rounded-lg border border-[#ccd4ce] 
+                            bg-white px-3 text-xs font-bold text-[var(--accent)] hover:bg-[#f3f7f4]"
                   type="button"
                   onClick={() =>
                     setRetryVersion((current) => current + 1)
@@ -686,7 +708,8 @@ export function MyBookingsPage({
               </div>
             </div>
           ) : visibleBookings.length === 0 ? (
-            <div className="grid min-h-[220px] place-items-center rounded-xl border border-dashed border-[#d4dbd6] bg-[#fafcfa] p-6 text-center">
+            <div className="grid min-h-[220px] place-items-center rounded-xl
+                          border border-dashed border-[#d4dbd6] bg-[#fafcfa] p-6 text-center">
               <div>
                 <p className="m-0 text-sm font-[680] text-[#3c4840]">
                   {section === "upcoming"
@@ -754,7 +777,8 @@ export function MyBookingsPage({
 
               {(section === "upcoming" ? upcomingCursor : pastCursor) ? (
                 <button
-                  className="mx-auto mt-2 h-9 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-4 text-xs font-bold text-[var(--accent)] hover:bg-[#f3f7f4] disabled:cursor-wait disabled:opacity-55"
+                  className="mx-auto mt-2 h-9 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-4 text-xs 
+                            font-bold text-[var(--accent)] hover:bg-[#f3f7f4] disabled:cursor-wait disabled:opacity-55"
                   type="button"
                   disabled={isLoadingMore}
                   onClick={() => void loadMoreBookings(section)}
