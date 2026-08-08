@@ -12,7 +12,7 @@ export default function CalendarLoading() {
       aria-label="Loading calendar"
     >
       <span className="sr-only">Loading calendar</span>
-      <CalendarSidebarSkeleton />
+      <CalendarSidebarSkeleton className="hidden min-[761px]:flex" />
       <section className="flex min-w-0 flex-1 flex-col">
         <CalendarHeaderSkeleton />
         <CalendarGridSkeleton />

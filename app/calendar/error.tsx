@@ -24,13 +24,13 @@ export default function CalendarError({
     <main className="flex h-screen min-h-[560px] w-full overflow-hidden bg-[var(--surface)] supports-[height:100dvh]:h-dvh">
       {/* Keep the fallback sidebar as a direct flex item so its room surface
           fills the viewport even while this route segment is in an error state. */}
-      <CalendarSidebarSkeleton className="hidden min-[760px]:flex" />
+      <CalendarSidebarSkeleton className="hidden min-[761px]:flex" />
       <section className="flex min-w-0 flex-1 flex-col">
         <CalendarHeaderSkeleton />
         <CalendarGridSkeleton
           overlay={
             <StatePanel
-              className="min-h-[220px] w-full max-w-[560px] bg-[rgba(255,250,250,0.96)]"
+              className="min-h-[220px] w-full max-w-[560px] bg-[rgba(255,250,250,0.96)] max-[760px]:min-h-[180px] max-[760px]:p-4"
               title="The calendar could not be loaded"
               description="The server or database may be temporarily unavailable. Your existing bookings have not been changed."
               tone="danger"
