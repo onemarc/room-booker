@@ -8,7 +8,7 @@ import {
   type BookingColor,
   type ScheduleBooking,
 } from "@/lib/bookings";
-import { formatTimeInZone, getDayRangeUtc, getOfficeSlotStartsWithinRange, getZonedDateIso } from "@/lib/time";
+import { formatCalendarTimeZoneNotice, formatTimeInZone, getDayRangeUtc, getOfficeSlotStartsWithinRange, getZonedDateIso } from "@/lib/time";
 import { Modal } from "@/components/calendar/Modal";
 import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
 import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
@@ -183,7 +183,7 @@ export function BookingFormModal({
   return (
     <Modal
       title="Book a room"
-      description={`Times are shown in ${timeZone} (GMT+3).`}
+      description={formatCalendarTimeZoneNotice(timeZone)}
       size="small"
       closeDisabled={isSubmitting}
       onClose={onClose}
