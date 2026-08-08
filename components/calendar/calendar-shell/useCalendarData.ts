@@ -61,6 +61,12 @@ export function useCalendarData({
   const [roomsRefreshVersion, setRoomsRefreshVersion] = useState(0);
   const [scheduleBookings, setScheduleBookings] =
     useState(initialBookings);
+  // --- SSR / client timezone hydration strategy ---
+  // The server renders with OFFICE_TIME_ZONE so the initial HTML matches
+  // hydration. The first schedule result key and loading mode are initialized
+  // against that same zone. "background" mode prevents the loading skeleton
+  // from blanking out server-rendered bookings while the browser reconciles
+  // to its actual local timezone on mount.
   const [scheduleResultKey, setScheduleResultKey] = useState(
     `${OFFICE_TIME_ZONE}:week:${getCalendarEventPrefetchPeriodDates({
       visibleStartDate: initialActiveDate,
@@ -206,6 +212,12 @@ export function useCalendarData({
     }
 
     const controller = new AbortController();
+    // --- Browser timezone reconciliation ---
+    // When the browser timezone differs from OFFICE_TIME_ZONE, the SSR-supplied
+    // bookings are positioned at wrong UTC offsets. Force a blocking fetch on
+    // the first timezone mismatch so stale data is cleared on failure rather
+    // than silently showing events shifted by several hours. The ref ensures
+    // subsequent fetches in the same timezone revert to quiet background mode.
     const shouldBlockForBrowserTimezone =
       timeZone !== OFFICE_TIME_ZONE &&
       browserTimezoneReconciliationRef.current !== timeZone;
@@ -360,6 +372,12 @@ export function useCalendarData({
     () => rooms.find((room) => room.id === selectedRoomId),
     [rooms, selectedRoomId],
   );
+  // --- Dual-mode booking visibility ---
+  // Booking visibility depends on whether the pending fetch is user-initiated
+  // ("blocking" — e.g. room switch) or automatic ("background" — e.g. polling,
+  // horizontal prefetch). Background fetches keep stale bookings rendered to
+  // avoid flicker; blocking fetches hide them immediately so room A's events
+  // never appear under room B's header during a transition.
   const isBackgroundScheduleFetch =
     scheduleLoadingMode === "background" &&
     scheduleResultKey !== scheduleRequestKey;
