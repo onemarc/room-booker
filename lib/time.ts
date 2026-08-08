@@ -1,8 +1,4 @@
-import {
-  OFFICE_CLOSE_HOUR,
-  OFFICE_OPEN_HOUR,
-  OFFICE_TIME_ZONE,
-} from "./office.mjs";
+import { OFFICE_CLOSE_HOUR, OFFICE_OPEN_HOUR, OFFICE_TIME_ZONE } from "./office.mjs";
 
 export type CalendarView = "day" | "week";
 
