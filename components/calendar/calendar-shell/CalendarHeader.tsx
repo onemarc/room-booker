@@ -125,7 +125,8 @@ export function CalendarHeader({
 
   return (
     <header className={HEADER_CLASS}>
-      <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] overflow-hidden max-[1200px]:gap-1 max-[1060px]:gap-0.5 max-[760px]:min-w-max max-[760px]:flex-none max-[760px]:overflow-visible">
+      <div className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] overflow-hidden max-[1200px]:gap-1
+                      max-[1060px]:gap-0.5 max-[760px]:min-w-max max-[760px]:flex-none max-[760px]:overflow-visible">
         {!isSidebarOpen ? (
           <>
             <button
@@ -138,7 +139,8 @@ export function CalendarHeader({
             </button>
           </>
         ) : null}
-        <strong className="min-w-0 flex-[0_1_auto] overflow-hidden text-[17px] font-[680] text-ellipsis whitespace-nowrap text-[#2d3731] max-[760px]:text-[16px]">
+        <strong className="min-w-0 flex-[0_1_auto] overflow-hidden text-[17px] font-[680] 
+                          text-ellipsis whitespace-nowrap text-[#2d3731] max-[760px]:text-[16px]">
           <span className="max-[760px]:hidden">{periodLabel}</span>
           <span className="hidden max-[760px]:inline">
             {compactPeriodLabel}
@@ -161,10 +163,15 @@ export function CalendarHeader({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1200px]:flex-[0_1_auto] max-[1200px]:max-w-full max-[1200px]:gap-1 max-[1200px]:[scrollbar-width:none] max-[1200px]:[&::-webkit-scrollbar]:hidden max-[1060px]:gap-0.5 max-[760px]:min-w-max max-[760px]:ml-auto max-[760px]:w-auto max-[760px]:flex-none max-[760px]:max-w-none max-[760px]:gap-0.5 max-[760px]:overflow-visible max-[760px]:pb-0">
+      <div className="flex min-w-0 flex-none items-center gap-[7px] overflow-x-auto max-[1200px]:flex-[0_1_auto]
+                      max-[1200px]:max-w-full max-[1200px]:gap-1 max-[1200px]:[scrollbar-width:none]
+                      max-[1200px]:[&::-webkit-scrollbar]:hidden max-[1060px]:gap-0.5 max-[760px]:min-w-max
+                      max-[760px]:ml-auto max-[760px]:w-auto max-[760px]:flex-none max-[760px]:max-w-none
+                      max-[760px]:gap-0.5 max-[760px]:overflow-visible max-[760px]:pb-0">
         <button
           className={[
-            `${TEXT_BUTTON_CLASS} max-[1200px]:h-8 max-[1200px]:text-xs max-[1060px]:h-7 max-[1060px]:px-1 max-[760px]:h-[34px] max-[760px]:w-[30px] max-[760px]:justify-center max-[760px]:px-0 max-[760px]:text-[13px] [&>svg]:size-4`,
+            `${TEXT_BUTTON_CLASS} max-[1200px]:h-8 max-[1200px]:text-xs max-[1060px]:h-7 max-[1060px]:px-1
+            max-[760px]:h-[34px] max-[760px]:w-[30px] max-[760px]:justify-center max-[760px]:px-0 max-[760px]:text-[13px] [&>svg]:size-4`,
             isTodayVisible ? "max-[760px]:hidden" : "",
           ].join(" ")}
           type="button"
@@ -233,7 +240,9 @@ export function CalendarHeader({
           <span className="hidden max-[760px]:inline">My</span>
         </button>
         <button
-          className="flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4 max-[1200px]:gap-1 max-[1200px]:px-2 max-[760px]:gap-1 max-[760px]:px-2"
+          className="flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--accent)]
+                    bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-50
+                    [&>svg]:size-4 max-[1200px]:gap-1 max-[1200px]:px-2 max-[760px]:gap-1 max-[760px]:px-2"
           type="button"
           disabled={!selectedRoomId || !canBook}
           title={canBook ? "Create a booking" : "Confirm your email before booking"}
