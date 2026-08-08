@@ -183,7 +183,7 @@ export function BookingFormModal({
   return (
     <Modal
       title="Book a room"
-      description={`Times are shown in ${timeZone}. Office rules use Europe/Kyiv.`}
+      description={`Times are shown in ${timeZone} (GMT+3).`}
       size="small"
       closeDisabled={isSubmitting}
       onClose={onClose}
