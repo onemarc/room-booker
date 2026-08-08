@@ -77,11 +77,11 @@ test("calendar timezone notice names both zones for a different viewer", () => {
   assert.equal(formatGmtOffset("Europe/Berlin", instant), "GMT+2");
   assert.equal(
     formatCalendarTimeZoneNotice("Europe/Berlin", instant),
-    "GMT+2 · Office GMT+3",
+    "GMT+2 · Office GMT+3 (Europe/Kyiv)",
   );
   assert.equal(
     formatCalendarTimeZoneNotice("Europe/Kyiv", instant),
-    "GMT+3",
+    "GMT+3 (Europe/Kyiv)",
   );
 });
 

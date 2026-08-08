@@ -204,10 +204,10 @@ export function formatCalendarTimeZoneNotice(
   const userOffset = formatGmtOffset(userTimeZone, value);
 
   if (userTimeZone === officeTimeZone) {
-    return userOffset;
+    return `${userOffset} (${officeTimeZone})`;
   }
 
-  return `${userOffset} · Office ${formatGmtOffset(officeTimeZone, value)}`;
+  return `${userOffset} · Office ${formatGmtOffset(officeTimeZone, value)} (${officeTimeZone})`;
 }
 
 export function parseCalendarDate(value: string): CalendarDateParts {
