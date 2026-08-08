@@ -9,6 +9,7 @@ import {
   getCalendarDayOffset,
   getCalendarDayColumnWidth,
   getCalendarScrollLeftForDayOffset,
+  getCalendarScrollLeftForCenteredDate,
   getCalendarScrollOffsetInDays,
   getRenderedCalendarDayColumnWidth,
   getCalendarWindowDates,
@@ -25,6 +26,7 @@ import {
 const MOMENTUM_STOP_SETTLE_DELAY_MS = 160;
 
 export function useInfiniteWeekScroll({
+  activeDate,
   targetDate,
   isSidebarOpen,
   positionRequestId,
@@ -34,6 +36,7 @@ export function useInfiniteWeekScroll({
   onVisibleRangeChange,
   onViewPositioned,
 }: {
+  activeDate: string;
   targetDate: string;
   isSidebarOpen: boolean;
   positionRequestId: number;
@@ -69,6 +72,7 @@ export function useInfiniteWeekScroll({
   const dateColumnRefs = useRef(new Map<string, HTMLDivElement>());
   const layoutAnchorDateRef = useRef<string | null>(null);
   const layoutAnchorDayOffsetRef = useRef<number | null>(null);
+  const layoutAnchorCenterOnMobileRef = useRef(false);
   const momentumStopAnchorDateRef = useRef<string | null>(null);
   const lastVisibleRangeRef = useRef<VisibleCalendarRange>({
     startDate: targetDate,
@@ -134,9 +138,24 @@ export function useInfiniteWeekScroll({
       viewport: HTMLDivElement,
       date: string,
       behavior: ScrollBehavior = "auto",
+      centerOnMobile = false,
     ) => {
       const dayColumnWidth = measureDayColumnWidth(viewport);
-      const left = getDateColumnLeft(date, dayColumnWidth);
+      const dateColumnScrollLeft = getDateColumnLeft(date, dayColumnWidth);
+      const shouldCenter =
+        centerOnMobile &&
+        window.matchMedia("(max-width: 760px)").matches;
+      const unclampedLeft = shouldCenter
+        ? getCalendarScrollLeftForCenteredDate({
+            dateColumnScrollLeft,
+            viewportWidth: viewport.clientWidth,
+            dayColumnWidth,
+          })
+        : dateColumnScrollLeft;
+      const left = Math.min(
+        unclampedLeft,
+        Math.max(0, viewport.scrollWidth - viewport.clientWidth),
+      );
 
       if (behavior === "auto") {
         viewport.scrollLeft = left;
@@ -153,9 +172,10 @@ export function useInfiniteWeekScroll({
       viewport: HTMLDivElement,
       anchorDate: string,
       anchorDayOffset: number | null,
+      centerOnMobile = false,
     ) => {
       if (anchorDayOffset === null) {
-        positionDateColumn(viewport, anchorDate);
+        positionDateColumn(viewport, anchorDate, "auto", centerOnMobile);
         return;
       }
 
@@ -178,6 +198,7 @@ export function useInfiniteWeekScroll({
     }
     layoutAnchorDateRef.current = null;
     layoutAnchorDayOffsetRef.current = null;
+    layoutAnchorCenterOnMobileRef.current = false;
     isRestoringLayoutRef.current = false;
   }, []);
 
@@ -213,12 +234,19 @@ export function useInfiniteWeekScroll({
       viewport: HTMLDivElement,
       anchorDate: string,
       anchorDayOffset: number | null = null,
+      centerOnMobile = false,
     ) => {
       cancelLayoutRestore();
       layoutAnchorDateRef.current = anchorDate;
       layoutAnchorDayOffsetRef.current = anchorDayOffset;
+      layoutAnchorCenterOnMobileRef.current = centerOnMobile;
       isRestoringLayoutRef.current = true;
-      positionLayoutAnchor(viewport, anchorDate, anchorDayOffset);
+      positionLayoutAnchor(
+        viewport,
+        anchorDate,
+        anchorDayOffset,
+        centerOnMobile,
+      );
 
       // Reapply through the next paints so browser-generated scroll events from
       // the flex reflow cannot overwrite the logical day offset.
@@ -233,6 +261,7 @@ export function useInfiniteWeekScroll({
           settledViewport,
           anchorDate,
           anchorDayOffset,
+          centerOnMobile,
         );
         layoutRestorePaintFrameRef.current = requestAnimationFrame(() => {
           layoutRestorePaintFrameRef.current = null;
@@ -242,6 +271,7 @@ export function useInfiniteWeekScroll({
               paintedViewport,
               anchorDate,
               anchorDayOffset,
+              centerOnMobile,
             );
             // The CSS-sized canvas and its date columns are now committed.
             // Record this settled width so the next genuine user scroll is not
@@ -318,6 +348,7 @@ export function useInfiniteWeekScroll({
     // sidebar loses the exact date under the viewport.
     layoutAnchorDateRef.current = visibleRange.startDate;
     layoutAnchorDayOffsetRef.current = dayOffset;
+    layoutAnchorCenterOnMobileRef.current = false;
     lastVisibleRangeRef.current = visibleRange;
     isRestoringLayoutRef.current = true;
     // Sidebar visibility is presentation-only. Publishing this range here
@@ -420,12 +451,20 @@ export function useInfiniteWeekScroll({
             layoutAnchorDateRef.current ??
               lastVisibleRangeRef.current.startDate,
             anchorDayOffset,
+            layoutAnchorCenterOnMobileRef.current,
           );
         } else {
+          const restoreAnchorDate =
+            layoutAnchorDateRef.current ??
+            lastVisibleRangeRef.current.startDate;
+          const centerOnMobile =
+            layoutAnchorCenterOnMobileRef.current &&
+            layoutAnchorDateRef.current !== null;
           restoreDateAfterLayout(
             viewport,
-            lastVisibleRangeRef.current.startDate,
-            anchorDayOffset,
+            restoreAnchorDate,
+            centerOnMobile ? null : anchorDayOffset,
+            centerOnMobile,
           );
         }
       }
@@ -564,6 +603,13 @@ export function useInfiniteWeekScroll({
     const dayColumnWidth = measureDayColumnWidth(viewport);
     const forcePosition =
       enteredWeekView || isViewPositioning || hasExplicitPositionRequest;
+    const shouldCenterTodayOnMobile =
+      shouldStopMomentum &&
+      view === "week" &&
+      window.matchMedia("(max-width: 760px)").matches;
+    const positionTargetDate = shouldCenterTodayOnMobile
+      ? activeDate
+      : targetDate;
 
     if (
       isRestoringLayoutRef.current &&
@@ -601,8 +647,8 @@ export function useInfiniteWeekScroll({
 
     if (forcePosition) {
       // View changes are navigation commands, not continuation of the old
-      // horizontal gesture. Position the requested Monday directly before the
-      // browser paints or any ResizeObserver anchoring can preserve stale days.
+      // horizontal gesture. Position the requested period before the browser
+      // paints; Today may use the active date as the mobile focus column.
       pendingScrollAdjustmentDaysRef.current = 0;
       isShiftingWindowRef.current = false;
       windowShiftAnchorDateRef.current = null;
@@ -623,15 +669,25 @@ export function useInfiniteWeekScroll({
       const positionTarget = (
         targetViewport: HTMLDivElement,
       ) => {
-        positionDateColumn(targetViewport, targetDate);
+        positionDateColumn(
+          targetViewport,
+          positionTargetDate,
+          "auto",
+          shouldCenterTodayOnMobile,
+        );
       };
 
       if (shouldStopMomentum) {
-        momentumStopAnchorDateRef.current = targetDate;
+        momentumStopAnchorDateRef.current = positionTargetDate;
       }
-      restoreDateAfterLayout(viewport, targetDate);
+      restoreDateAfterLayout(
+        viewport,
+        positionTargetDate,
+        null,
+        shouldCenterTodayOnMobile,
+      );
       if (shouldStopMomentum) {
-        releaseMomentumStopAfterScrollSettles(targetDate);
+        releaseMomentumStopAfterScrollSettles(positionTargetDate);
       }
       shouldPositionImmediatelyRef.current = false;
       lastPositionedTargetRef.current = targetDate;
@@ -747,6 +803,7 @@ export function useInfiniteWeekScroll({
   }, [
     reportVisibleRange,
     resolvedWindowStart,
+    activeDate,
     cancelMomentumStop,
     cancelLayoutRestore,
     isViewPositioning,
@@ -805,7 +862,7 @@ export function useInfiniteWeekScroll({
       // remaining trackpad wheel events must not move the viewport away from
       // that date before their momentum naturally ends.
       event.preventDefault();
-      positionDateColumn(viewport, anchorDate);
+      positionDateColumn(viewport, anchorDate, "auto", true);
       releaseMomentumStopAfterScrollSettles(anchorDate);
     };
 
@@ -825,7 +882,7 @@ export function useInfiniteWeekScroll({
       const viewport = event.currentTarget;
       const momentumStopAnchorDate = momentumStopAnchorDateRef.current;
       if (momentumStopAnchorDate) {
-        positionDateColumn(viewport, momentumStopAnchorDate);
+        positionDateColumn(viewport, momentumStopAnchorDate, "auto", true);
         releaseMomentumStopAfterScrollSettles(momentumStopAnchorDate);
         return;
       }
@@ -843,6 +900,7 @@ export function useInfiniteWeekScroll({
           viewport,
           anchorDate,
           layoutAnchorDayOffsetRef.current,
+          layoutAnchorCenterOnMobileRef.current,
         );
         return;
       }
@@ -870,6 +928,7 @@ export function useInfiniteWeekScroll({
             viewport,
             anchorDate,
             layoutAnchorDayOffsetRef.current,
+            layoutAnchorCenterOnMobileRef.current,
           );
           return;
         }
