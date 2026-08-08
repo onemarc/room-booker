@@ -18,8 +18,14 @@ type CancellationScope = "occurrence" | "series";
 
 const NORMAL_LINK_CLASS = [
   "inline-flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border-0 bg-transparent px-[9px]",
-  "text-[13px] font-[620] text-[#4b5750] no-underline hover:bg-[#f0f3f0] hover:text-[var(--ink)]",
-  "max-[640px]:px-[7px]",
+  "text-lg font-[700] text-[#2d3731] no-underline hover:bg-[#f0f3f0] hover:text-[var(--ink)] [&>svg]:size-5",
+  "max-[640px]:px-1",
+].join(" ");
+
+const DISPLAY_NAME_CLASS = [
+  "inline-flex h-[34px] min-w-0 max-w-[150px] items-center overflow-hidden rounded-lg px-[9px]",
+  "text-base font-[500] text-ellipsis whitespace-nowrap text-[#2d3731]",
+  "max-[640px]:hidden",
 ].join(" ");
 
 function subscribeToBrowserTimeZone() {
@@ -577,19 +583,20 @@ export function MyBookingsPage({
             href={calendarHref}
           >
             <FiArrowLeft aria-hidden="true" />
-            Calendar
+            <span className="max-[640px]:hidden">Calendar</span>
           </Link>
-          <span className="h-[23px] w-px flex-none bg-[#d7ddd8]" aria-hidden="true" />
+          <span
+            className="h-[23px] w-px flex-none bg-[#d7ddd8]"
+            aria-hidden="true"
+          />
           <h1 className="m-0 overflow-hidden text-lg font-[700] text-ellipsis whitespace-nowrap text-[#2d3731]">
             My bookings
           </h1>
         </div>
 
-        <div className="flex flex-none items-center gap-2 text-[11px] text-[#778179] max-[640px]:gap-1">
-          <span className="whitespace-nowrap">GMT+3</span>
-          <span className="mx-1 h-[23px] w-px bg-[#d7ddd8] max-[640px]:hidden" aria-hidden="true" />
+        <div className="flex flex-none items-center gap-1 text-[11px] text-[#778179] max-[640px]:gap-0.5">
           <span
-            className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-[620] text-[#4b5750] max-[640px]:hidden"
+            className={DISPLAY_NAME_CLASS}
             title={displayName}
           >
             {displayName}
@@ -603,7 +610,7 @@ export function MyBookingsPage({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d7ddd8] bg-[var(--surface)] shadow-[0_14px_42px_rgba(20,35,26,0.07)]">
           <div className="flex flex-none items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5 max-[640px]:px-4 max-[640px]:py-4">
             <p className="m-0 text-[13px] leading-5 text-[#6c776f]">
-              Dates and times are shown in {timeZone}.
+              Dates and times are shown in {timeZone} (GMT+3).
             </p>
           </div>
 
