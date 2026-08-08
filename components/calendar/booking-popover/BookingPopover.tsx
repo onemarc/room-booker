@@ -283,7 +283,8 @@ export function BookingPopover({
 
   return (
     <div
-      className="fixed z-90 w-[340px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[15px] border border-[#cfd8d1] bg-white shadow-[0_20px_60px_rgba(24,39,30,0.22)]"
+      className="fixed z-90 w-[340px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[15px]
+                border border-[#cfd8d1] bg-white shadow-[0_20px_60px_rgba(24,39,30,0.22)]"
       ref={panelRef}
       role="dialog"
       aria-modal="false"
@@ -307,7 +308,8 @@ export function BookingPopover({
         <div className="flex flex-none items-center gap-1">
           {target.mode === "edit" ? (
             <button
-              className="grid size-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#9a4a4a] hover:bg-[#fff0f0] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
+              className="grid size-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent
+                        text-[#9a4a4a] hover:bg-[#fff0f0] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
               type="button"
               aria-label={isDeleting ? "Deleting booking" : "Delete booking"}
               title={isDeleting ? "Deleting booking" : "Delete booking"}
@@ -322,7 +324,8 @@ export function BookingPopover({
             </button>
           ) : null}
           <button
-            className="grid size-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#667169] hover:bg-[#eef2ef] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
+            className="grid size-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent
+                      text-[#667169] hover:bg-[#eef2ef] disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-4"
             type="button"
             aria-label="Close booking editor"
             disabled={isSubmitting}
@@ -349,7 +352,8 @@ export function BookingPopover({
         <label className="grid gap-1 text-sm font-[650] text-[#3a463e]">
           Title
           <input
-            className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal text-[#263129] outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal text-[#263129]
+                      outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="text"
             value={title}
             maxLength={100}
@@ -399,7 +403,8 @@ export function BookingPopover({
           <div className="mt-2 flex flex-wrap gap-2">
             {BOOKING_COLOR_OPTIONS.map((option) => (
               <button
-                className="grid size-7 cursor-pointer place-items-center rounded-full border-2 transition-transform hover:scale-105"
+                className="grid size-7 cursor-pointer place-items-center
+                          rounded-full border-2 transition-transform hover:scale-105"
                 type="button"
                 title={option.label}
                 aria-label={`${option.label} booking color`}
@@ -433,7 +438,8 @@ export function BookingPopover({
           <label className="grid gap-1 text-sm font-[650] text-[#3a463e]">
             Weekly occurrences
             <input
-              className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+              className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal
+                        text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
               type="number"
               min={1}
               max={52}
@@ -453,7 +459,8 @@ export function BookingPopover({
 
         <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-3">
           <button
-            className="h-9 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-3 text-xs font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:opacity-50"
+            className="h-9 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white
+                      px-3 text-xs font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:opacity-50"
             type="button"
             disabled={isSubmitting}
             onClick={onClose}
@@ -461,7 +468,8 @@ export function BookingPopover({
             Cancel
           </button>
           <button
-            className="h-9 cursor-pointer rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3 text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-wait disabled:opacity-55"
+            className="h-9 cursor-pointer rounded-lg border border-[var(--accent)] bg-[var(--accent)] px-3
+                      text-xs font-[680] text-white hover:bg-[#1f503a] disabled:cursor-wait disabled:opacity-55"
             type="submit"
             disabled={isSubmitting}
           >
@@ -503,7 +511,8 @@ export function BookingPopover({
             ) : null}
             <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-4">
               <button
-                className="h-10 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-4 text-sm font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 cursor-pointer rounded-lg border border-[#ccd4ce] bg-white px-4 text-sm
+                          font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
                 data-autofocus
                 disabled={isDeleting}
@@ -512,7 +521,8 @@ export function BookingPopover({
                 Keep booking
               </button>
               <button
-                className="h-10 cursor-pointer rounded-lg border border-[#9c3d3d] bg-[#9c3d3d] px-4 text-sm font-[680] text-white hover:bg-[#873434] disabled:cursor-wait disabled:opacity-55"
+                className="h-10 cursor-pointer rounded-lg border border-[#9c3d3d] bg-[#9c3d3d] px-4 text-sm
+                          font-[680] text-white hover:bg-[#873434] disabled:cursor-wait disabled:opacity-55"
                 type="button"
                 disabled={isDeleting}
                 onClick={() => void handleDelete()}
