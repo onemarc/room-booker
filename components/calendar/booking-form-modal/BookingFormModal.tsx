@@ -216,7 +216,8 @@ export function BookingFormModal({
         <label className="grid gap-1.5 text-sm font-[650] text-[#334039]">
           Date
           <input
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal
+                      text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="date"
             value={date}
             aria-invalid={Boolean(fieldErrors.date)}
@@ -270,7 +271,8 @@ export function BookingFormModal({
             </span>
           </span>
           <input
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129] outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129]
+                      outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="text"
             value={title}
             maxLength={100}
@@ -285,7 +287,8 @@ export function BookingFormModal({
         <label className="grid gap-1.5 text-sm font-[650] text-[#334039]">
           Weekly occurrences
           <input
-            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
+            className="h-11 w-full rounded-[10px] border border-[#ccd4ce] bg-white px-3 text-[15px] font-normal
+                      text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
             type="number"
             min={1}
             max={52}
@@ -338,7 +341,8 @@ export function BookingFormModal({
 
         <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-4">
           <button
-            className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4 text-sm font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4 text-sm
+                      font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             disabled={isSubmitting}
             onClick={onClose}
@@ -346,7 +350,8 @@ export function BookingFormModal({
             Cancel
           </button>
           <button
-            className="h-10 cursor-pointer rounded-[9px] border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-55"
+            className="h-10 cursor-pointer rounded-[9px] border border-[var(--accent)] bg-[var(--accent)] px-4
+                      text-sm font-[680] text-white hover:bg-[#1f503a] disabled:cursor-not-allowed disabled:opacity-55"
             type="submit"
             disabled={isSubmitting || rooms.length === 0}
           >
