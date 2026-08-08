@@ -100,6 +100,7 @@ export function CalendarShell({
   const [stopScrollRequestId, setStopScrollRequestId] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const calendarGridRef = useRef<CalendarGridHandle>(null);
+  const hasReconciledBrowserDate = useRef(false);
   const [rooms, setRooms] = useState(initialRooms);
   const [minimumCapacity, setMinimumCapacity] = useState(1);
   const selectedInitialRoomId = initialRoomId ?? initialRooms[0]?.id ?? "";
@@ -178,6 +179,40 @@ export function CalendarShell({
     setPreviewBookingColor,
     setSelectedGridSelection,
   ]);
+  useEffect(() => {
+    // The server must use the office zone for its deterministic first render,
+    // but the browser owns the displayed calendar date after hydration. Only
+    // replace the server's default "today"; an explicit URL date is user
+    // navigation and should survive the timezone reconciliation.
+    if (
+      timeZone === OFFICE_TIME_ZONE ||
+      hasReconciledBrowserDate.current
+    ) {
+      return;
+    }
+
+    const serverToday = getZonedDateIso(
+      new Date(initialNow),
+      OFFICE_TIME_ZONE,
+    );
+    const browserDate =
+      initialActiveDate === serverToday
+        ? getZonedDateIso(new Date(initialNow), timeZone)
+        : initialActiveDate;
+    const targetDate =
+      view === "week" ? getMondayStart(browserDate) : browserDate;
+
+    hasReconciledBrowserDate.current = true;
+    setScheduleLoadingMode("blocking");
+    setPositionRequestId((current) => current + 1);
+    setSelectedDate(browserDate);
+    setGridTargetDate(targetDate);
+    setVisibleGridRange({
+      startDate: targetDate,
+      endDate: addCalendarDays(targetDate, view === "week" ? 6 : 0),
+    });
+    setVisibleMiniCalendarMonth(startOfCalendarMonth(browserDate));
+  }, [initialActiveDate, initialNow, timeZone, view]);
   const cancelBookingDraft = useCallback(() => {
     if (bookingEditorTarget?.mode === "create") {
       // A grid click temporarily makes the draft date active. Cancelling the
