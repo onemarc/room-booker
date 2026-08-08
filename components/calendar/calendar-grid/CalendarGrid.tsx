@@ -520,8 +520,7 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                       booking.startAt,
                       timeZone,
                     )}–${formatTimeInZone(booking.endAt, timeZone)}`;
-                    const showBookingTime =
-                      isThirtyMinuteBooking || height >= 9;
+                    const showBookingTime = height >= 9;
                     const showBookingOwner = height >= 9;
 
                     return (
@@ -586,23 +585,24 @@ export const CalendarGrid = forwardRef<CalendarGridHandle, CalendarGridProps>(fu
                             {booking.title}
                           </span>
                         </strong>
-                        {showBookingTime ? (
-                          <span
-                            className={[
-                              "block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80",
-                              isThirtyMinuteBooking
-                                ? "-mt-0.5 max-[820px]:hidden"
-                                : "",
-                            ].join(" ")}
-                          >
-                            {bookingTime}
+                        {isThirtyMinuteBooking ? (
+                          <span className="-mt-0.5 block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80">
+                            {booking.authorDisplayName} · {bookingTime}
                           </span>
-                        ) : null}
-                        {showBookingOwner ? (
-                          <span className="block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80">
-                            {booking.authorDisplayName}
-                          </span>
-                        ) : null}
+                        ) : (
+                          <>
+                            {showBookingOwner ? (
+                              <span className="block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80">
+                                {booking.authorDisplayName}
+                              </span>
+                            ) : null}
+                            {showBookingTime ? (
+                              <span className="block overflow-hidden text-[10px] leading-4 text-ellipsis whitespace-nowrap opacity-80">
+                                {bookingTime}
+                              </span>
+                            ) : null}
+                          </>
+                        )}
                       </button>
                     );
                   },
