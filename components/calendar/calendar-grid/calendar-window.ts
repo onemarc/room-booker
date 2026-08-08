@@ -228,6 +228,27 @@ export function getCalendarDateColumnScrollLeft(columnOffsetLeft: number) {
   return Math.max(0, columnOffsetLeft - CALENDAR_TIME_COLUMN_WIDTH);
 }
 
+export function getCalendarScrollLeftForCenteredDate({
+  dateColumnScrollLeft,
+  viewportWidth,
+  dayColumnWidth,
+}: {
+  dateColumnScrollLeft: number;
+  viewportWidth: number;
+  dayColumnWidth: number;
+}) {
+  const visibleDateAreaWidth = Math.max(
+    0,
+    viewportWidth - CALENDAR_TIME_COLUMN_WIDTH,
+  );
+  const centerOffset = Math.max(
+    0,
+    (visibleDateAreaWidth - dayColumnWidth) / 2,
+  );
+
+  return Math.max(0, dateColumnScrollLeft - centerOffset);
+}
+
 export function getCalendarScrollOffsetInDays({
   scrollLeft,
   dayColumnWidth,
