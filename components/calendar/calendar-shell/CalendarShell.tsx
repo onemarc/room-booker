@@ -106,6 +106,26 @@ export function CalendarShell({
   const [selectedRoomId, setSelectedRoomId] = useState(
     selectedInitialRoomId,
   );
+  useEffect(() => {
+    if (!selectedRoomId || typeof window === "undefined") {
+      return;
+    }
+
+    // The server uses roomId to hydrate the initial schedule. Keep the
+    // client-side choice in the URL without navigating away or resetting the
+    // current calendar viewport, so a browser reload restores the same room.
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("roomId") === selectedRoomId) {
+      return;
+    }
+
+    url.searchParams.set("roomId", selectedRoomId);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }, [selectedRoomId]);
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [roomError, setRoomError] = useState("");
   const [roomsRefreshVersion, setRoomsRefreshVersion] = useState(0);
@@ -172,7 +192,7 @@ export function CalendarShell({
   const initialRoomsSignature = `${OFFICE_TIME_ZONE}:${initialActiveDate}:1:0`;
   const loadedRoomsSignature = useRef(initialRoomsSignature);
   const initialScheduleSignature = `${OFFICE_TIME_ZONE}:week:${initialSchedulePeriodDates.join(",")}:${
-    initialRooms[0]?.id ?? ""
+    selectedInitialRoomId
   }:0`;
   const loadedScheduleSignature = useRef(initialScheduleSignature);
   const activeDate =
