@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { FaRegTrashCan } from "react-icons/fa6";
 import { FiX } from "react-icons/fi";
-import { DEFAULT_BOOKING_COLOR, type BookingColor, type BookingFieldErrors, type CreateBookingResponse, type ScheduleBooking } from "@/lib/bookings";
-import { formatCalendarDay, formatTimeInZone, getZonedDateIso } from "@/lib/time";
+import { FaRegTrashCan } from "react-icons/fa6";
 import { Modal } from "@/components/calendar/Modal";
-import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
 import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
+import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
+import { formatCalendarDay, formatTimeInZone, getZonedDateIso } from "@/lib/time";
 import { FieldError, getBookingTimeOptions } from "@/components/calendar/shared/booking-form-utils";
+import { 
+  DEFAULT_BOOKING_COLOR,
+  type BookingColor,
+  type BookingFieldErrors,
+  type CreateBookingResponse,
+  type ScheduleBooking,
+} from "@/lib/bookings";
 
 export type BookingAnchor = {
   top: number;
@@ -340,7 +346,7 @@ export function BookingPopover({
           </p>
         ) : null}
 
-        <label className="grid gap-1 text-xs font-[650] text-[#3a463e]">
+        <label className="grid gap-1 text-sm font-[650] text-[#3a463e]">
           Title
           <input
             className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal text-[#263129] outline-none placeholder:text-[#9aa39d] focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
@@ -387,7 +393,7 @@ export function BookingPopover({
         </div>
 
         <fieldset className="m-0 grid gap-3 border-0 p-0">
-          <legend className="p-0 text-xs font-[650] text-[#3a463e]">
+          <legend className="p-0 text-sm font-[650] text-[#3a463e]">
             Color
           </legend>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -424,7 +430,7 @@ export function BookingPopover({
         </fieldset>
 
         {target.mode === "create" ? (
-          <label className="grid gap-1 text-xs font-[650] text-[#3a463e]">
+          <label className="grid gap-1 text-sm font-[650] text-[#3a463e]">
             Weekly occurrences
             <input
               className="h-10 rounded-[9px] border border-[#ccd4ce] bg-white px-3 text-[13px] font-normal text-[#263129] outline-none focus:border-[#6b927f] focus:ring-3 focus:ring-[rgba(37,91,67,0.12)]"
