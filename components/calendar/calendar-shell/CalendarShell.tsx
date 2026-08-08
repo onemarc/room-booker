@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BookingFormModal } from "@/components/calendar/booking-form-modal/BookingFormModal";
-import { DEFAULT_BOOKING_COLOR, type BookingColor, type ScheduleBooking } from "@/lib/bookings";
-import { BookingPopover, type BookingEditorTarget } from "@/components/calendar/booking-popover/BookingPopover";
+import { BookingPopover } from "@/components/calendar/booking-popover/BookingPopover";
+import type { ScheduleBooking } from "@/lib/bookings";
 import { getCalendarViewTransitionTarget, type VisibleCalendarRange } from "@/components/calendar/calendar-grid/calendar-window";
-import { CalendarGrid, type CalendarGridHandle, type CalendarGridSelection } from "@/components/calendar/calendar-grid/CalendarGrid";
+import { CalendarGrid, type CalendarGridHandle } from "@/components/calendar/calendar-grid/CalendarGrid";
 import { OFFICE_TIME_ZONE } from "@/lib/office.mjs";
 import {
   addCalendarDays,
@@ -18,6 +18,7 @@ import {
 } from "@/lib/time";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarSidebar } from "./CalendarSidebar";
+import { useBookingEditor } from "./useBookingEditor";
 import { useCalendarData } from "./useCalendarData";
 import type { RoomAvailability } from "@/lib/rooms";
 
@@ -120,33 +121,31 @@ export function CalendarShell({
     visibleGridRange,
     minimumCapacity,
   });
-  const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
   const [isResendingConfirmation, setIsResendingConfirmation] =
     useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState("");
-  const [bookingEditorTarget, setBookingEditorTarget] =
-    useState<BookingEditorTarget | null>(null);
-  const [draftColor, setDraftColor] =
-    useState<BookingColor>(DEFAULT_BOOKING_COLOR);
-  const [previewBookingColor, setPreviewBookingColor] = useState<{
-    bookingId: string;
-    color: BookingColor;
-  } | null>(null);
-  // The completed range is separate from the popover target so the grid can
-  // keep its selection treatment visible while the editor is open.
-  const [selectedGridSelection, setSelectedGridSelection] =
-    useState<CalendarGridSelection | null>(null);
-  const closeBookingEditor = useCallback(() => {
-    setBookingEditorTarget(null);
-    setSelectedGridSelection(null);
-    setDraftColor(DEFAULT_BOOKING_COLOR);
-    setPreviewBookingColor(null);
-  }, [
-    setBookingEditorTarget,
-    setDraftColor,
-    setPreviewBookingColor,
-    setSelectedGridSelection,
-  ]);
+
+  function selectGridDate(date: string) {
+    // Scrolling changes only the pale visible-range highlight. The selected
+    // day changes when an interaction is anchored to a concrete grid date.
+    setSelectedDate(date);
+    setVisibleMiniCalendarMonth(startOfCalendarMonth(date));
+  }
+
+  const bookingEditor = useBookingEditor({
+    timeZone,
+    emailConfirmed,
+    selectGridDate,
+    setSelectedRoomId,
+    replaceScheduleBooking,
+    removeScheduleBooking,
+    requestScheduleRefresh,
+    getZonedDateIso,
+    startOfCalendarMonth,
+    setSelectedDate,
+    setVisibleMiniCalendarMonth,
+  });
+
   useEffect(() => {
     // The server must use the office zone for its deterministic first render,
     // but the browser owns the displayed calendar date after hydration. Only
@@ -187,17 +186,6 @@ export function CalendarShell({
     timeZone,
     view,
   ]);
-  const cancelBookingDraft = useCallback(() => {
-    if (bookingEditorTarget?.mode === "create") {
-      // A grid click temporarily makes the draft date active. Cancelling the
-      // unsaved editor must return both controlled MiniCalendar values to the
-      // real current day instead of leaving the draft date selected.
-      const currentDate = getZonedDateIso(new Date(), timeZone);
-      setSelectedDate(currentDate);
-      setVisibleMiniCalendarMonth(startOfCalendarMonth(currentDate));
-    }
-    closeBookingEditor();
-  }, [bookingEditorTarget, closeBookingEditor, timeZone]);
   const today = getZonedDateIso(new Date(), timeZone);
 
   useEffect(() => {
@@ -244,7 +232,7 @@ export function CalendarShell({
         addCalendarDays(nextDate, view === "week" ? 3 : 0),
       ),
     );
-    closeBookingEditor();
+    bookingEditor.close();
   }
 
   function goToToday() {
@@ -273,10 +261,11 @@ export function CalendarShell({
         ),
       });
       setVisibleMiniCalendarMonth(startOfCalendarMonth(date));
-      closeBookingEditor();
+      bookingEditor.close();
     },
-    [closeBookingEditor, markScheduleBlocking, view],
+    [bookingEditor, markScheduleBlocking, view],
   );
+  bookingEditor.selectActiveDateRef.current = selectActiveDate;
 
   function changeCalendarView(nextView: CalendarView) {
     const targetDate = getCalendarViewTransitionTarget({
@@ -303,7 +292,7 @@ export function CalendarShell({
         addCalendarDays(targetDate, nextView === "week" ? 3 : 0),
       ),
     );
-    closeBookingEditor();
+    bookingEditor.close();
   }
 
   const finishGridViewPositioning = useCallback(() => {
@@ -330,17 +319,10 @@ export function CalendarShell({
     view,
   ]);
 
-  function selectGridDate(date: string) {
-    // Scrolling changes only the pale visible-range highlight. The selected
-    // day changes when an interaction is anchored to a concrete grid date.
-    setSelectedDate(date);
-    setVisibleMiniCalendarMonth(startOfCalendarMonth(date));
-  }
-
   function selectRoom(roomId: string) {
     markScheduleBlocking();
     setSelectedRoomId(roomId);
-    closeBookingEditor();
+    bookingEditor.close();
   }
 
   const toggleSidebar = useCallback((open: boolean) => {
@@ -374,41 +356,6 @@ export function CalendarShell({
     } finally {
       setIsResendingConfirmation(false);
     }
-  }
-
-  function handleBookingCreated({
-    booking,
-    roomId,
-    date,
-  }: {
-    booking: ScheduleBooking;
-    roomId: string;
-    date: string;
-  }) {
-    setSelectedRoomId(roomId);
-    replaceScheduleBooking(booking);
-    selectActiveDate(date);
-    requestScheduleRefresh("blocking");
-    setIsBookingFormOpen(false);
-  }
-
-  function handleBookingSaved({
-    booking,
-  }: {
-    booking: ScheduleBooking;
-    mode: BookingEditorTarget["mode"];
-  }) {
-    // Apply the server response directly so a successful edit never replaces
-    // the visible schedule with a full loading state.
-    replaceScheduleBooking(booking);
-    requestScheduleRefresh("background");
-    closeBookingEditor();
-  }
-
-  function handleBookingDeleted(bookingId: string) {
-    removeScheduleBooking(bookingId);
-    requestScheduleRefresh("background");
-    closeBookingEditor();
   }
 
   return (
@@ -460,11 +407,7 @@ export function CalendarShell({
           onChangeView={changeCalendarView}
           onSelectRoom={selectRoom}
           onMinimumCapacityChange={setMinimumCapacity}
-          onOpenBooking={() => {
-            if (!emailConfirmed) return;
-            closeBookingEditor();
-            setIsBookingFormOpen(true);
-          }}
+          onOpenBooking={bookingEditor.openBookingForm}
         />
         {!emailConfirmed || confirmationStatus === "invalid" ? (
           <div
@@ -527,85 +470,47 @@ export function CalendarShell({
           displayName={displayName}
           selectedRoom={selectedRoom}
           bookings={visibleScheduleBookings}
-          draftColor={draftColor}
-          previewBookingColor={previewBookingColor}
+          draftColor={bookingEditor.draftColor}
+          previewBookingColor={bookingEditor.previewBookingColor}
           canBook={emailConfirmed}
           isScheduleLoading={isScheduleLoading}
           scheduleError={scheduleError}
-          selectedGridSelection={selectedGridSelection}
+          selectedGridSelection={bookingEditor.selectedGridSelection}
           onVisibleRangeChange={syncVisibleRange}
           onViewPositioned={finishGridViewPositioning}
           onRetrySchedule={() => {
             requestScheduleRefresh("blocking");
           }}
-          onCreateSelection={({ gridSelection, ...selection }) => {
-            setIsBookingFormOpen(false);
-            setDraftColor(DEFAULT_BOOKING_COLOR);
-            setPreviewBookingColor(null);
-            selectGridDate(gridSelection.date);
-            setSelectedGridSelection(gridSelection);
-            setBookingEditorTarget({
-              mode: "create",
-              ...selection,
-            });
-          }}
-          onUpdateSelection={({ gridSelection, ...selection }) => {
-            selectGridDate(gridSelection.date);
-            setSelectedGridSelection(gridSelection);
-            setBookingEditorTarget((current) =>
-              current?.mode === "create"
-                ? {
-                    ...current,
-                    ...selection,
-                  }
-                : current,
-            );
-          }}
-          onEditBooking={(selection) => {
-            setIsBookingFormOpen(false);
-            setPreviewBookingColor(null);
-            setSelectedGridSelection(null);
-            setBookingEditorTarget({
-              mode: "edit",
-              ...selection,
-            });
-          }}
+          onCreateSelection={bookingEditor.handleCreateSelection}
+          onUpdateSelection={bookingEditor.handleUpdateSelection}
+          onEditBooking={bookingEditor.handleEditBooking}
         />
       </section>
 
-      {bookingEditorTarget ? (
+      {bookingEditor.bookingEditorTarget ? (
         <BookingPopover
           key={
-            bookingEditorTarget.mode === "edit"
-              ? `edit:${bookingEditorTarget.booking.id}`
+            bookingEditor.bookingEditorTarget.mode === "edit"
+              ? `edit:${bookingEditor.bookingEditorTarget.booking.id}`
               : "create"
           }
-          target={bookingEditorTarget}
+          target={bookingEditor.bookingEditorTarget}
           timeZone={timeZone}
-          onClose={cancelBookingDraft}
-          onSaved={handleBookingSaved}
-          onDeleted={handleBookingDeleted}
-          onColorChange={(color) => {
-            if (bookingEditorTarget.mode === "edit") {
-              setPreviewBookingColor({
-                bookingId: bookingEditorTarget.booking.id,
-                color,
-              });
-            } else {
-              setDraftColor(color);
-            }
-          }}
+          onClose={bookingEditor.cancelDraft}
+          onSaved={bookingEditor.handleSaved}
+          onDeleted={bookingEditor.handleDeleted}
+          onColorChange={bookingEditor.handleColorChange}
         />
       ) : null}
 
-      {isBookingFormOpen ? (
+      {bookingEditor.isBookingFormOpen ? (
         <BookingFormModal
           rooms={rooms}
           selectedRoomId={selectedRoomId}
           activeDate={activeDate}
           timeZone={timeZone}
-          onClose={() => setIsBookingFormOpen(false)}
-          onCreated={handleBookingCreated}
+          onClose={() => bookingEditor.setIsBookingFormOpen(false)}
+          onCreated={bookingEditor.handleCreated}
         />
       ) : null}
 
