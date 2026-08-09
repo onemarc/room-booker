@@ -193,33 +193,34 @@ export function CalendarGridSurface({
               {officeGmtOffset}
             </span>
           </div>
-          {dates.map((date) => (
-            <div
-              className={[
-                "flex min-w-0 flex-col items-center justify-center border-r border-b border-[var(--grid-line)] bg-[var(--surface)] leading-none",
-                // `activeDate` persists for navigation and the MiniCalendar;
-                // only the draft selection should keep a non-today header green.
-                date === today ||
-                (selectedGridSelection !== null &&
-                  date === selectedGridSelection.date &&
-                  date === activeDate)
-                  ? "text-[#315841]"
-                  : "text-[#b8bab8]",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              key={date}
-              data-calendar-date={date}
-              ref={(element) => setDateColumnRef(date, element)}
-            >
-              <strong className="text-[clamp(34px,3.1vw,48px)] font-[650] tracking-[-0.04em] tabular-nums">
-                {formatCalendarDay(date, { day: "2-digit" })}
-              </strong>
-              <span className="mt-1 text-[clamp(17px,1.65vw,24px)] font-[450]">
-                {formatCalendarDay(date, { weekday: "short" })}
-              </span>
-            </div>
-          ))}
+          {dates.map((date) => {
+            const isActive = date === activeDate;
+            const isToday = date === today;
+
+            // Date cell in header uses text color change (text-[#315841] for active/today) without background fill
+            return (
+              <div
+                className={[
+                  "flex min-w-0 flex-col items-center justify-center border-r border-b border-[var(--grid-line)] bg-[var(--surface)] leading-none transition-colors",
+                  isActive || isToday
+                    ? "text-[#315841]"
+                    : "text-[#b8bab8]",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={date}
+                data-calendar-date={date}
+                ref={(element) => setDateColumnRef(date, element)}
+              >
+                <strong className="text-[clamp(34px,3.1vw,48px)] font-[650] tracking-[-0.04em] tabular-nums">
+                  {formatCalendarDay(date, { day: "2-digit" })}
+                </strong>
+                <span className="mt-1 text-[clamp(17px,1.65vw,24px)] font-[450]">
+                  {formatCalendarDay(date, { weekday: "short" })}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <div
@@ -246,7 +247,10 @@ export function CalendarGridSurface({
               </div>
               {dates.map((date) => {
                 const isPastSlot = pastSlotKeys.has(`${date}:${rowIndex}`);
+                const isActive = date === activeDate;
+                const isToday = date === today;
 
+                // Highlight active day column slots with subtle background tint matching the header
                 return (
                   <button
                     className={[
@@ -255,15 +259,17 @@ export function CalendarGridSurface({
                         : dragSelection || movingDraft
                           ? "cursor-grabbing"
                           : "cursor-crosshair",
-                      "touch-pan-x touch-pan-y select-none border-0 border-r border-[var(--grid-line)] p-0 outline-none focus-visible:z-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]",
+                      "touch-pan-x touch-pan-y select-none border-0 border-r border-[var(--grid-line)] p-0 outline-none focus-visible:z-1 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)] transition-colors",
                       rowIndex === 0
                         ? "border-t-0"
                         : rowIndex % 2 === 0
                           ? "border-t"
                           : "border-t-0",
-                      date === today
-                        ? "bg-[#fbfdfb]"
-                        : "bg-[var(--surface)]",
+                      isActive
+                        ? "bg-[#f6faf7]"
+                        : isToday
+                          ? "bg-[#fbfdfb]"
+                          : "bg-[var(--surface)]",
                     ]
                       .filter(Boolean)
                       .join(" ")}
