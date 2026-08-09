@@ -60,12 +60,12 @@ export async function updateUpcomingBooking({
             UPDATE bookings SET title = $3, start_at = $4, end_at = $5,
               color = $6, updated_at = now()
             WHERE id = $1 AND author_id = $2
-            RETURNING id, author_id, title, start_at, end_at, color
+            RETURNING id, author_id, title, start_at, end_at, color, series_id
           )
           SELECT updated_booking.id, updated_booking.title,
             users.display_name AS author_display_name,
             updated_booking.start_at, updated_booking.end_at,
-            updated_booking.color
+            updated_booking.color, updated_booking.series_id
           FROM updated_booking
           INNER JOIN users ON users.id = updated_booking.author_id
         `,

@@ -34,7 +34,8 @@ export async function listRoomSchedule({
     `
       SELECT rooms.id AS room_id, bookings.id AS booking_id, bookings.title,
         users.display_name AS author_display_name, bookings.start_at,
-        bookings.end_at, bookings.color, bookings.author_id = $4 AS is_owner
+        bookings.end_at, bookings.color, bookings.author_id = $4 AS is_owner,
+        bookings.series_id AS series_id
       FROM rooms
       LEFT JOIN bookings ON bookings.room_id = rooms.id
         AND bookings.start_at < $3
@@ -60,6 +61,7 @@ export async function listRoomSchedule({
           endAt: serializeUtcInstant(row.end_at),
           color: row.color,
           isOwner: Boolean(row.is_owner),
+          seriesId: row.series_id ?? null,
         }]
       : [],
   );

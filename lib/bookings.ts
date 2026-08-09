@@ -52,6 +52,7 @@ export type ScheduleBooking = {
   endAt: string;
   color: BookingColor;
   isOwner: boolean;
+  seriesId?: string | null;
 };
 
 export type OwnedBooking = {

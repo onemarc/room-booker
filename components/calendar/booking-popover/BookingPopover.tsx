@@ -8,6 +8,7 @@ import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
 import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
 import { formatCalendarDay, formatTimeInZone, getZonedDateIso } from "@/lib/time";
 import { FieldError, getBookingTimeOptions } from "@/components/calendar/shared/booking-form-utils";
+import type { CancellationScope } from "@/components/calendar/my-bookings/myBookingsUtils";
 import { 
   DEFAULT_BOOKING_COLOR,
   type BookingColor,
@@ -93,6 +94,8 @@ export function BookingPopover({
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
     useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [cancellationScope, setCancellationScope] =
+    useState<CancellationScope>("occurrence");
   const timeOptions = useMemo(
     () => getBookingTimeOptions(startDate, timeZone),
     [startDate, timeZone],
@@ -249,7 +252,9 @@ export function BookingPopover({
 
     try {
       const response = await fetch(
-        `/api/bookings/${encodeURIComponent(target.booking.id)}`,
+        `/api/bookings/${encodeURIComponent(
+          target.booking.id,
+        )}?scope=${cancellationScope}`,
         {
           method: "DELETE",
           headers: {
@@ -317,6 +322,7 @@ export function BookingPopover({
               disabled={isSubmitting}
               onClick={() => {
                 setDeleteError("");
+                setCancellationScope("occurrence");
                 setIsDeleteConfirmationOpen(true);
               }}
             >
@@ -501,6 +507,36 @@ export function BookingPopover({
               </strong>
               ?
             </p>
+            {/* For weekly occurrences / recurring bookings, display cancellation scope choice */}
+            {target.mode === "edit" && target.booking.seriesId ? (
+              <fieldset className="grid gap-2 rounded-xl border border-[#d8dfda] bg-[#f8faf8] p-3">
+                <legend className="px-1 text-xs font-[680] text-[#3f4b43]">
+                  Recurring booking
+                </legend>
+                <label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-[#56625a]">
+                  <input
+                    className="mt-1 accent-[var(--accent)]"
+                    type="radio"
+                    name="popover-cancellation-scope"
+                    checked={cancellationScope === "occurrence"}
+                    disabled={isDeleting}
+                    onChange={() => setCancellationScope("occurrence")}
+                  />
+                  Cancel only this occurrence
+                </label>
+                <label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-[#56625a]">
+                  <input
+                    className="mt-1 accent-[var(--accent)]"
+                    type="radio"
+                    name="popover-cancellation-scope"
+                    checked={cancellationScope === "series"}
+                    disabled={isDeleting}
+                    onChange={() => setCancellationScope("series")}
+                  />
+                  Cancel this and all future occurrences
+                </label>
+              </fieldset>
+            ) : null}
             {deleteError ? (
               <p
                 className="m-0 rounded-lg border border-[#ebcece] bg-[#fff8f8] px-3 py-2 text-sm leading-5 text-[#8d3d3d]"

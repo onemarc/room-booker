@@ -11,6 +11,7 @@ export type ScheduleRow = {
   end_at: Date | null;
   color: BookingColor | null;
   is_owner: boolean | null;
+  series_id: string | null;
 };
 
 export type CreatedBookingRow = {
@@ -20,6 +21,7 @@ export type CreatedBookingRow = {
   start_at: Date;
   end_at: Date;
   color: BookingColor;
+  series_id: string | null;
 };
 
 export type OwnedBookingRow = {

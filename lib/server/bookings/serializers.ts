@@ -15,6 +15,7 @@ export function toScheduleBooking(
     endAt: serializeUtcInstant(row.end_at),
     color: row.color,
     isOwner: true,
+    seriesId: row.series_id ?? null,
   };
 }
 

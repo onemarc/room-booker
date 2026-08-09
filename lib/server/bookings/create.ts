@@ -99,11 +99,11 @@ export async function createBooking({
               unnest($6::text[]),
               $7,
               unnest($8::int[])
-            RETURNING id, author_id, title, start_at, end_at, color
+            RETURNING id, author_id, title, start_at, end_at, color, series_id
           )
           SELECT i.id, i.title,
             u.display_name AS author_display_name,
-            i.start_at, i.end_at, i.color
+            i.start_at, i.end_at, i.color, i.series_id
           FROM inserted i
           INNER JOIN users u ON u.id = i.author_id
           ORDER BY i.start_at
