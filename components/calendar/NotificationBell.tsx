@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiBell, FiX } from "react-icons/fi";
 import { formatUtcInstant } from "@/lib/time";
+import { Toast } from "@/components/ui/Toast";
 import type {
   BookingEndNotification,
   NotificationsResponse,
@@ -120,64 +121,43 @@ export function NotificationBell({ timeZone }: { timeZone: string }) {
       </button>
 
       {activeNotification ? (
-        <aside
-          className="fixed right-4 bottom-4 z-100 w-[min(380px,calc(100vw-24px))] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-[#cad5cc]
-                    bg-white p-4 shadow-[0_22px_70px_rgba(20,35,26,0.24)] max-[640px]:right-3 max-[640px]:bottom-3"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 grid size-9 flex-none place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)] [&>svg]:size-[17px]">
-              <FiBell aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <strong className="block text-sm font-[720] text-[#28342c]">
-                Your booking ends soon
-              </strong>
-              <p className="mt-1 mb-0 text-xs leading-5 text-[#657168] [overflow-wrap:anywhere]">
-                <span
-                  className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
-                  title={activeNotification.title}
-                >
-                  {activeNotification.title}
-                </span>{" "}in {activeNotification.roomName}
-                {" ends at "}
-                {formatUtcInstant(activeNotification.endsAt, timeZone, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hourCycle: "h23",
-                })}
-                {activeNotification.nextBookingTitle ? (
-                  <>
-                    {". Your next booking, "}
-                    <span
-                      className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
-                      title={activeNotification.nextBookingTitle}
-                    >
-                      “{activeNotification.nextBookingTitle}”
-                    </span>
-                    {" starts immediately after this one."}
-                  </>
-                ) : (
-                  ". The next room slot is occupied."
-                )}
-              </p>
-            </div>
-            <button
-              className="grid size-8 flex-none cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[#68736b] hover:bg-[#eef2ef] [&>svg]:size-4"
-              type="button"
-              aria-label="Dismiss booking notification"
-              onClick={() => void dismiss(activeNotification)}
-            >
-              <FiX aria-hidden="true" />
-            </button>
-          </div>
-          {error ? (
-            <p className="mt-2 mb-0 text-[11px] text-[#963f3f]" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </aside>
+        <Toast
+          title="Your booking ends soon"
+          icon={<FiBell aria-hidden="true" />}
+          variant="info"
+          errorText={error}
+          onDismiss={() => void dismiss(activeNotification)}
+          description={
+            <>
+              <span
+                className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
+                title={activeNotification.title}
+              >
+                {activeNotification.title}
+              </span>{" "}in {activeNotification.roomName}
+              {" ends at "}
+              {formatUtcInstant(activeNotification.endsAt, timeZone, {
+                hour: "2-digit",
+                minute: "2-digit",
+                hourCycle: "h23",
+              })}
+              {activeNotification.nextBookingTitle ? (
+                <>
+                  {". Your next booking, "}
+                  <span
+                    className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
+                    title={activeNotification.nextBookingTitle}
+                  >
+                    “{activeNotification.nextBookingTitle}”
+                  </span>
+                  {" starts immediately after this one."}
+                </>
+              ) : (
+                ". The next room slot is occupied."
+              )}
+            </>
+          }
+        />
       ) : null}
     </>
   );
