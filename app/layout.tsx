@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Host_Grotesk } from "next/font/google";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
 const hostGrotesk = Host_Grotesk({
@@ -23,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={hostGrotesk.variable}>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }
