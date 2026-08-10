@@ -11,6 +11,7 @@ import { getSelectionBounds, MAX_SELECTION_SLOTS } from "./calendar-grid-utils";
 import type { RoomAvailability } from "@/lib/rooms";
 import type { BookingAnchor } from "@/components/calendar/booking-popover/BookingPopover";
 import type { BookingSelection, DragSelection } from "./types";
+import { useToast } from "@/components/ui/Toast";
 
 type CompletedGridSelection = {
   date: string;
@@ -33,6 +34,7 @@ export function useGridSelection({
   onCreateSelection: (selection: BookingSelection) => void;
   onUpdateSelection: (selection: BookingSelection) => void;
 }) {
+  const { showToast } = useToast();
   const [dragSelection, setDragSelection] = useState<DragSelection | null>(null);
   const [movingDraft, setMovingDraft] = useState<{
     origin: CompletedGridSelection;
@@ -78,7 +80,10 @@ export function useGridSelection({
     const start = localDateTimeToUtc(date, rows[startIndex].label, timeZone);
     // The editor can adjust an interval after it is selected, so every entry
     // point goes through this guard instead of only disabling old grid cells.
-    if (start.getTime() < Date.now()) return;
+    if (start.getTime() < Date.now()) {
+      showToast("You cannot create an event in the past.");
+      return;
+    }
     const end = new Date(start.getTime() + (endIndex - startIndex) * CALENDAR_SLOT_MINUTES * 60_000);
     return {
       roomId: selectedRoom.id,
@@ -88,7 +93,7 @@ export function useGridSelection({
       anchor,
       gridSelection: { date, startIndex, endIndex },
     };
-  }, [rows, selectedRoom, timeZone]);
+  }, [rows, selectedRoom, showToast, timeZone]);
 
   const isPastStart = useCallback((date: string, startIndex: number) => (
     localDateTimeToUtc(date, rows[startIndex].label, timeZone).getTime() <
@@ -226,24 +231,54 @@ export function useGridSelection({
     }
   }, []);
 
+  /**
+   * Start a mouse drag selection on the grid.
+   * If the clicked slot is in the past, block selection object creation completely
+   * and inform the user via a toast notification.
+   */
   function startSelection(event: ReactPointerEvent<HTMLButtonElement>, date: string, rowIndex: number) {
     if (event.pointerType !== "mouse" || event.button !== 0 || !selectedRoom) return;
     event.preventDefault();
+
+    if (isPastStart(date, rowIndex)) {
+      showToast("You cannot create an event on past time.");
+      return;
+    }
+
     const selection = { date, anchorIndex: rowIndex, currentIndex: rowIndex };
     dragSelectionRef.current = selection;
     setDragSelection(selection);
   }
 
+  /**
+   * Extend an active drag selection as the mouse moves over grid slots.
+   * Prevent extending into past slots.
+   */
   function extendSelection(date: string, rowIndex: number) {
     const current = dragSelectionRef.current;
     if (!current || current.date !== date) return;
+
+    if (isPastStart(date, rowIndex)) {
+      return;
+    }
+
     const next = { ...current, currentIndex: rowIndex };
     dragSelectionRef.current = next;
     setDragSelection(next);
   }
 
+  /**
+   * Select a slot via keyboard navigation (Space / Enter).
+   * Blocks creating an event on past time and displays a toast notification.
+   */
   function selectSlotWithKeyboard(event: ReactMouseEvent<HTMLButtonElement>, date: string, rowIndex: number) {
     if (event.detail !== 0 || !selectedRoom) return;
+
+    if (isPastStart(date, rowIndex)) {
+      showToast("You cannot create an event on past time.");
+      return;
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     openSelection({ date, startIndex: rowIndex, endIndex: rowIndex + 1, anchor: { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left } });
   }
