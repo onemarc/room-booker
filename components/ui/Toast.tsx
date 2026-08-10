@@ -87,9 +87,9 @@ export function Toast({
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
         <span
-          className={`mt-0.5 grid size-9 flex-none place-items-center rounded-full ${variantStyles} [&>svg]:size-[17px]`}
+          className={`grid size-9 flex-none place-items-center rounded-full ${variantStyles} [&>svg]:size-[17px]`}
         >
           {renderedIcon}
         </span>
@@ -100,7 +100,11 @@ export function Toast({
             </strong>
           ) : null}
           {description ? (
-            <div className="mt-1 mb-0 text-xs leading-5 text-[#657168] [overflow-wrap:anywhere]">
+            <div
+              className={`${
+                title ? "mt-1 mb-0" : "m-0"
+              } text-xs leading-5 text-[#657168] [overflow-wrap:anywhere]`}
+            >
               {description}
             </div>
           ) : null}
@@ -147,25 +151,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const showToast = useCallback((options: string | ToastOptions) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    const toastItem: ToastItem =
-      typeof options === "string"
-        ? {
-            id,
-            message: options,
-            variant: "warning",
-            duration: 4000,
-          }
-        : {
-            id,
-            title: options.title,
-            message: options.message,
-            variant: options.variant ?? "warning",
-            duration: options.duration ?? 4000,
-          };
+    const title = typeof options === "string" ? undefined : options.title;
+    const message = typeof options === "string" ? options : options.message;
+    const variant = typeof options === "string" ? "warning" : (options.variant ?? "warning");
+    const duration = typeof options === "string" ? 4000 : (options.duration ?? 4000);
 
-    // Ensure only a single active toast card is rendered in the DOM at any time
-    setActiveToast(toastItem);
+    setActiveToast((current) => {
+      // If the currently visible toast matches the message, keep its identity
+      // to avoid unmounting/remounting DOM elements and rendering stacked box-shadow artifacts.
+      if (
+        current &&
+        current.message === message &&
+        current.title === title &&
+        current.variant === variant
+      ) {
+        return current;
+      }
+
+      return {
+        id: Math.random().toString(36).substring(2, 9),
+        title,
+        message,
+        variant,
+        duration,
+      };
+    });
   }, []);
 
   return (
