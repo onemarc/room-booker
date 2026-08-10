@@ -80,10 +80,7 @@ export function useGridSelection({
     const start = localDateTimeToUtc(date, rows[startIndex].label, timeZone);
     // The editor can adjust an interval after it is selected, so every entry
     // point goes through this guard instead of only disabling old grid cells.
-    if (start.getTime() < Date.now()) {
-      showToast("You cannot create an event in the past.");
-      return;
-    }
+    if (start.getTime() < Date.now()) return;
     const end = new Date(start.getTime() + (endIndex - startIndex) * CALENDAR_SLOT_MINUTES * 60_000);
     return {
       roomId: selectedRoom.id,
@@ -93,7 +90,7 @@ export function useGridSelection({
       anchor,
       gridSelection: { date, startIndex, endIndex },
     };
-  }, [rows, selectedRoom, showToast, timeZone]);
+  }, [rows, selectedRoom, timeZone]);
 
   const isPastStart = useCallback((date: string, startIndex: number) => (
     localDateTimeToUtc(date, rows[startIndex].label, timeZone).getTime() <
