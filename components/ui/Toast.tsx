@@ -134,14 +134,16 @@ type ToastItem = {
 };
 
 /**
- * ToastProvider manages app-wide toast notifications, offering auto-dismissal
- * and an imperative hook (`useToast`) for triggering notifications.
+ * ToastProvider manages app-wide toast notifications.
+ * It enforces single-toast presentation so multiple rapid triggers (mouse clicks on past calendar slots)
+ * replace/refresh the single visible toast instead of stacking multiple cards
+ * underneath each other and causing performance lag.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [activeToast, setActiveToast] = useState<ToastItem | null>(null);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts((current) => current.filter((t) => t.id !== id));
+  const removeToast = useCallback(() => {
+    setActiveToast(null);
   }, []);
 
   const showToast = useCallback((options: string | ToastOptions) => {
@@ -162,20 +164,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             duration: options.duration ?? 4000,
           };
 
-    // Replace or add toast
-    setToasts((current) => [...current, toastItem]);
+    // Ensure only a single active toast card is rendered in the DOM at any time
+    setActiveToast(toastItem);
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {toasts.map((toast) => (
+      {activeToast ? (
         <AutoDismissToast
-          key={toast.id}
-          toast={toast}
-          onDismiss={() => removeToast(toast.id)}
+          key={activeToast.id}
+          toast={activeToast}
+          onDismiss={removeToast}
         />
-      ))}
+      ) : null}
     </ToastContext.Provider>
   );
 }
