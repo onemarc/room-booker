@@ -273,9 +273,10 @@ export function CalendarGridSurface({
                     ]
                       .filter(Boolean)
                       .join(" ")}
-                    key={`${date}-${row.officeTime}`}
-                    type="button"
-                    disabled={isPastSlot || !canBook}
+                    // Use aria-disabled instead of native HTML disabled for past slots so click/tap
+                    // gestures reach startSelection and selectSlotWithKeyboard to present toast feedback.
+                    disabled={!canBook}
+                    aria-disabled={isPastSlot}
                     aria-label={`Select ${formatCalendarDay(date, {
                       weekday: "long",
                       month: "long",
