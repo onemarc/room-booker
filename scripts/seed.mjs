@@ -169,7 +169,7 @@ const DEMO_BOOKINGS = [
     endTime: "15:00",
   },
   {
-    id: "10000000-0000-4000-8000-000000000014",
+    id: "10000000-0000-4000-8000-000000000015",
     room: "Aqua",
     author: "paul@room-booker.local",
     title: "Team retrospective",
@@ -234,6 +234,10 @@ async function seed() {
     );
     const seedDate = seedDateResult.rows[0].seed_date;
 
+    // Remove existing demo bookings before re-seeding so shifted demo dates from previous runs
+    // do not violate the bookings_no_room_overlap exclusion constraint during step-by-step updates.
+    const demoIds = Array.from(new Set(DEMO_BOOKINGS.map((booking) => booking.id)));
+    await client.query("DELETE FROM bookings WHERE id = ANY($1::uuid[])", [demoIds]);
 
     for (const booking of DEMO_BOOKINGS) {
       // PostgreSQL converts Kyiv wall-clock values into unambiguous UTC instants.
