@@ -33,6 +33,7 @@ export default async function MyBookingsRoute({
     <MyBookingsPage
       calendarHref={"/calendar?" + calendarParams.toString()}
       displayName={user.displayName}
+      emailConfirmed={user.emailConfirmed}
       view={view}
     />
   );
