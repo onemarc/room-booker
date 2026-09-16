@@ -1,3 +1,5 @@
+import Image from "next/image";
+import favicon from "@/app/favicon.ico";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { getCurrentUser } from "@/lib/server/session";
@@ -10,6 +12,18 @@ export default async function Register() {
   return (
     <div className="my-auto w-full max-w-[430px] py-[52px] pb-[30px] min-[521px]:py-[72px]">
       <div className="mb-[34px]">
+        {/* Brand identity header with official favicon mark, static without navigational link */}
+        <div className="mb-6 flex items-center gap-[11px] text-[15px] font-[690] tracking-[-0.015em] text-[var(--ink)]">
+          <Image
+            src={favicon}
+            alt="Room Booker logo"
+            width={30}
+            height={30}
+            className="size-[30px] rounded-[9px]"
+            priority
+          />
+          <span>Room Booker</span>
+        </div>
         <p className="m-0 mb-3 text-xs font-[720] tracking-[0.11em] text-[#255b43] uppercase">
           Employee access
         </p>
