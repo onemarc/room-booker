@@ -18,13 +18,45 @@ import { useMyBookings } from "./useMyBookings";
 export function MyBookingsPage({
   calendarHref,
   displayName,
+  emailConfirmed = true,
   view,
 }: {
   calendarHref: string;
   displayName: string;
+  emailConfirmed?: boolean;
   view: CalendarView;
 }) {
   const router = useRouter();
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+
+  async function resendConfirmation() {
+    setIsResendingConfirmation(true);
+    setConfirmationMessage("");
+
+    try {
+      const response = await fetch("/api/auth/confirm/resend", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      });
+      const data = (await response.json()) as {
+        error?: { message?: string };
+      };
+      setConfirmationMessage(
+        response.ok
+          ? "A fresh confirmation link was printed to the server log."
+          : (data.error?.message ?? "A new link could not be issued."),
+      );
+    } catch {
+      setConfirmationMessage("A new confirmation link could not be issued.");
+    } finally {
+      setIsResendingConfirmation(false);
+    }
+  }
 
   // Detect and synchronize current browser time zone, falling back to default office time zone.
   const timeZone = useSyncExternalStore(
@@ -73,6 +105,25 @@ export function MyBookingsPage({
         displayName={displayName}
         timeZone={timeZone}
       />
+      {!emailConfirmed ? (
+        <div
+          className="flex flex-none items-center justify-between gap-3 border-b border-[#e5d3aa] bg-[#fffaf0] px-6 py-2 text-xs text-[#745b25] max-[640px]:items-start max-[640px]:px-4"
+          role="status"
+        >
+          <span>
+            {confirmationMessage ||
+              "Confirm your email using the development link in the server log before booking a room."}
+          </span>
+          <button
+            className="h-8 flex-none cursor-pointer rounded-lg border border-[#d8c38e] bg-white px-3 text-[11px] font-bold text-[#745b25] hover:bg-[#fffdf8] disabled:cursor-wait disabled:opacity-55"
+            type="button"
+            disabled={isResendingConfirmation}
+            onClick={() => void resendConfirmation()}
+          >
+            {isResendingConfirmation ? "Issuing…" : "Print new link"}
+          </button>
+        </div>
+      ) : null}
 
       <section className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 
                         flex-col px-6 py-7 max-[640px]:px-3 max-[640px]:py-4">
