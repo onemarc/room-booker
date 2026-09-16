@@ -1,5 +1,7 @@
 # Room Booker - meeting-room scheduling application
 
+https://github.com/user-attachments/assets/cbe91454-aa3f-4292-9069-ccaf030b90fb
+
 ## Prerequisites
 
 - Node.js 22.6 or newer (required for Node test runner type stripping)
