@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FiBell, FiX } from "react-icons/fi";
+import { FiBell } from "react-icons/fi";
 import { formatUtcInstant } from "@/lib/time";
 import { Toast } from "@/components/ui/Toast";
 import type {
@@ -143,14 +143,14 @@ export function NotificationBell({ timeZone }: { timeZone: string }) {
               })}
               {activeNotification.nextBookingTitle ? (
                 <>
-                  {". Your next booking, "}
+                  {". Next booking, “"}
                   <span
                     className="font-[650] text-[#28342c] [overflow-wrap:anywhere]"
                     title={activeNotification.nextBookingTitle}
                   >
-                    “{activeNotification.nextBookingTitle}”
+                    {activeNotification.nextBookingTitle}
                   </span>
-                  {" starts immediately after this one."}
+                  {"”, starts immediately after this one."}
                 </>
               ) : (
                 ". The next room slot is occupied."
