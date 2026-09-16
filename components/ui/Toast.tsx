@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { FiAlertCircle, FiBell, FiCheckCircle, FiInfo, FiX } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheckCircle, FiX } from "react-icons/fi";
 
 export type ToastVariant = "info" | "warning" | "error" | "success";
 
