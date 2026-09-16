@@ -53,13 +53,13 @@ export function CalendarLoadingOverlay({
       />
       {dates.map((date, dayIndex) => (
         <div
-          className="relative min-w-0 border-r border-[var(--grid-line)] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_55px,var(--grid-line)_55px,var(--grid-line)_56px)]"
+          className="relative min-w-0 overflow-hidden border-r border-[var(--grid-line)] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_55px,var(--grid-line)_55px,var(--grid-line)_56px)]"
           key={date}
         >
           {isDayView
             ? DAY_LOADING_GHOST_BOOKINGS.map((booking) => (
                 <div
-                  className="absolute animate-pulse rounded-[7px] border border-[#d4e0d7] bg-[#edf3ef] p-2 shadow-[0_2px_8px_rgba(34,53,42,0.08)] motion-reduce:animate-none"
+                  className="absolute box-border max-w-full animate-pulse rounded-[7px] border border-[#d4e0d7] bg-[#edf3ef] p-2 shadow-[0_2px_8px_rgba(34,53,42,0.08)] motion-reduce:animate-none"
                   key={`${date}:${booking.top}`}
                   style={{
                     top: booking.top,
@@ -79,7 +79,7 @@ export function CalendarLoadingOverlay({
                 (booking) => booking.day === dayIndex % 7,
               ).map((booking) => (
                 <div
-                  className="absolute animate-pulse rounded-[7px] border border-[#d4e0d7] bg-[#edf3ef] p-2 shadow-[0_2px_8px_rgba(34,53,42,0.08)] motion-reduce:animate-none"
+                  className="absolute box-border max-w-full animate-pulse rounded-[7px] border border-[#d4e0d7] bg-[#edf3ef] p-2 shadow-[0_2px_8px_rgba(34,53,42,0.08)] motion-reduce:animate-none"
                   key={`${date}:${booking.top}`}
                   style={{
                     top: booking.top,

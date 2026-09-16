@@ -72,6 +72,36 @@ test("Day to Week uses the displayed day instead of an older selected date", () 
   );
 });
 
+test("Day to Week view transition targets Monday of visible date and positions correctly", () => {
+  const activeDate = "2026-09-16";
+  const targetDate = getCalendarViewTransitionTarget({
+    activeDate,
+    currentView: "day",
+    nextView: "week",
+    visibleStartDate: "2026-09-16",
+  });
+  assert.equal(targetDate, "2026-09-14");
+
+  const windowStart = getCalendarWindowStart(targetDate);
+  assert.equal(windowStart, "2026-08-24");
+
+  const viewportWidth = 1024;
+  const dayColumnWidth = getCalendarDayColumnWidth(viewportWidth);
+  const scrollLeft = getDateScrollLeft({
+    windowStart,
+    targetDate,
+    dayColumnWidth,
+  });
+
+  const range = getVisibleCalendarRange({
+    windowStart,
+    scrollLeft,
+    dayColumnWidth,
+  });
+  assert.equal(range.startDate, "2026-09-14");
+  assert.equal(range.endDate, "2026-09-20");
+});
+
 test("Week positioning uses the rendered column width", () => {
   const windowStart = "2026-07-13";
   const dayColumnWidth = getRenderedCalendarDayColumnWidth({
@@ -114,6 +144,26 @@ test("mobile Today positioning centers the requested date beside the time rail",
     }),
     42,
   );
+});
+
+test("Week view navigation always positions Monday at the start of visible range even on mobile", () => {
+  const windowStart = "2026-08-24";
+  const targetDate = "2026-09-14"; // Monday
+  const viewportWidth = 680; // narrow / mobile screen <= 760px
+  const dayColumnWidth = getCalendarDayColumnWidth(viewportWidth);
+  const scrollLeft = getDateScrollLeft({
+    windowStart,
+    targetDate,
+    dayColumnWidth,
+  });
+
+  const range = getVisibleCalendarRange({
+    windowStart,
+    scrollLeft,
+    dayColumnWidth,
+  });
+  assert.equal(range.startDate, "2026-09-14");
+  assert.equal(range.endDate, "2026-09-20");
 });
 
 test("seven complete dates fit the available viewport without a trailing gap", () => {

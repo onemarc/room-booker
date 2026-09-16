@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type UIEvent as ReactUIEvent } from "react";
-import { addCalendarDays, getViewDates, type CalendarView } from "@/lib/time";
+import { addCalendarDays, getMondayStart, getViewDates, type CalendarView } from "@/lib/time";
 import {
   CALENDAR_VISIBLE_DAY_COUNT,
   CALENDAR_WINDOW_SHIFT_DAYS,
+  getCalendarCanvasWidth,
   getCalendarDateColumnScrollLeft,
   getCalendarDayOffset,
   getCalendarDayColumnWidth,
@@ -94,13 +95,24 @@ export function useInfiniteWeekScroll({
   );
 
   const measureDayColumnWidth = useCallback(
-    (viewport: HTMLDivElement) =>
-      view === "week"
-        ? getRenderedCalendarDayColumnWidth({
-            dayCount: dates.length,
-            scrollWidth: viewport.scrollWidth,
-          })
-        : getCalendarDayColumnWidth(viewport.clientWidth),
+    (viewport: HTMLDivElement) => {
+      if (view === "week") {
+        // The date cells are the source of truth while the responsive canvas is
+        // settling. scrollWidth can briefly describe the minimum 49-day canvas,
+        // which makes every calculated date offset too small during a transition.
+        const renderedColumn = dateColumnRefs.current.values().next().value;
+        const renderedWidth = renderedColumn?.getBoundingClientRect().width;
+        if (renderedWidth && renderedWidth > 0) {
+          return renderedWidth;
+        }
+
+        return getRenderedCalendarDayColumnWidth({
+          dayCount: dates.length,
+          scrollWidth: viewport.scrollWidth,
+        });
+      }
+      return getCalendarDayColumnWidth(viewport.clientWidth);
+    },
     [dates.length, view],
   );
 
@@ -119,11 +131,14 @@ export function useInfiniteWeekScroll({
     (date: string, dayColumnWidth: number) => {
       const renderedColumn = dateColumnRefs.current.get(date);
       if (renderedColumn) {
+        // A rendered column already includes the browser's final grid-track
+        // width. It remains correct even if scrollWidth or a cached width still
+        // belongs to the previous Day/Week layout pass.
         return getCalendarDateColumnScrollLeft(renderedColumn.offsetLeft);
       }
 
       // The fallback is only needed during a recycled-window commit before the
-      // new column ref attaches. Normal resize positioning uses rendered DOM.
+      // new column ref attaches.
       return getDateScrollLeft({
         windowStart: resolvedWindowStart,
         targetDate: date,
@@ -142,8 +157,13 @@ export function useInfiniteWeekScroll({
     ) => {
       const dayColumnWidth = measureDayColumnWidth(viewport);
       const dateColumnScrollLeft = getDateColumnLeft(date, dayColumnWidth);
+      // Week view navigation targets the Monday starting the period. Monday must ALWAYS
+      // align as the first visible column (left edge) and never be centered, which would
+      // otherwise push Monday to column 4 and expose the prior week's Friday-Sunday.
+      const isMonday = date === getMondayStart(date);
       const shouldCenter =
         centerOnMobile &&
+        !isMonday &&
         window.matchMedia("(max-width: 760px)").matches;
       const unclampedLeft = shouldCenter
         ? getCalendarScrollLeftForCenteredDate({
@@ -152,9 +172,16 @@ export function useInfiniteWeekScroll({
             dayColumnWidth,
           })
         : dateColumnScrollLeft;
+      const canvasWidth = Math.max(
+        viewport.scrollWidth,
+        getCalendarCanvasWidth({
+          dayCount: dates.length,
+          viewportWidth: viewport.clientWidth,
+        }),
+      );
       const left = Math.min(
         unclampedLeft,
-        Math.max(0, viewport.scrollWidth - viewport.clientWidth),
+        Math.max(0, canvasWidth - viewport.clientWidth),
       );
 
       if (behavior === "auto") {
@@ -164,7 +191,7 @@ export function useInfiniteWeekScroll({
       }
       return left;
     },
-    [getDateColumnLeft, measureDayColumnWidth],
+    [dates.length, getDateColumnLeft, measureDayColumnWidth],
   );
 
   const positionLayoutAnchor = useCallback(
@@ -437,6 +464,14 @@ export function useInfiniteWeekScroll({
         return;
       }
 
+      if (isViewPositioning) {
+        // A view transition owns the positioning transaction. ResizeObserver
+        // can run between its frames; record the new width, but never cancel
+        // the transition restore or start a competing sidebar restore here.
+        previousDayColumnWidthRef.current = nextWidth;
+        return;
+      }
+
       if (
         previousWidth !== null &&
         Math.abs(previousWidth - nextWidth) >= 0.01
@@ -453,22 +488,25 @@ export function useInfiniteWeekScroll({
             dayColumnWidth: previousWidth,
           });
 
+        const restoreAnchorDate =
+          layoutAnchorDateRef.current ??
+          lastVisibleRangeRef.current.startDate;
+        const isMondayAnchor =
+          restoreAnchorDate === getMondayStart(restoreAnchorDate);
+
         if (layoutAnchorDayOffsetRef.current !== null) {
           // A sidebar click captured the logical offset before flex reflow.
           // Reapply it directly to the CSS-sized canvas and leave the existing
           // transaction alive; restarting it here creates competing restorers.
           positionLayoutAnchor(
             viewport,
-            layoutAnchorDateRef.current ??
-              lastVisibleRangeRef.current.startDate,
+            restoreAnchorDate,
             anchorDayOffset,
-            layoutAnchorCenterOnMobileRef.current,
+            !isMondayAnchor && layoutAnchorCenterOnMobileRef.current,
           );
         } else {
-          const restoreAnchorDate =
-            layoutAnchorDateRef.current ??
-            lastVisibleRangeRef.current.startDate;
           const centerOnMobile =
+            !isMondayAnchor &&
             layoutAnchorCenterOnMobileRef.current &&
             layoutAnchorDateRef.current !== null;
           restoreDateAfterLayout(
@@ -489,6 +527,7 @@ export function useInfiniteWeekScroll({
     return () => resizeObserver.disconnect();
   }, [
     cancelLayoutRestore,
+    isViewPositioning,
     measureDayColumnWidth,
     positionLayoutAnchor,
     restoreDateAfterLayout,
@@ -615,8 +654,11 @@ export function useInfiniteWeekScroll({
     const forcePosition =
       enteredWeekView || isViewPositioning || hasExplicitPositionRequest;
     const shouldCenterTodayOnMobile =
+      !enteredWeekView &&
+      !isViewPositioning &&
       shouldStopMomentum &&
       view === "week" &&
+      activeDate !== getMondayStart(activeDate) &&
       window.matchMedia("(max-width: 760px)").matches;
     const positionTargetDate = shouldCenterTodayOnMobile
       ? activeDate
@@ -728,6 +770,17 @@ export function useInfiniteWeekScroll({
           }
           viewRevealPaintFrameRef.current = requestAnimationFrame(() => {
             viewRevealPaintFrameRef.current = null;
+            const paintedViewport = scrollViewportRef.current;
+            if (paintedViewport) {
+              // Reapply after the canvas has completed its second layout pass.
+              // This is the final Monday-to-Sunday positioning write before
+              // the transition cover is released.
+              positionTarget(paintedViewport);
+            }
+            // CalendarShell owns the requested range for this transaction.
+            // Do not measure the recycled canvas from this older render here:
+            // it can still describe the pre-transition window and poison the
+            // next Day/Week switch with stale dates.
             onViewPositioned();
           });
         });
