@@ -106,7 +106,7 @@ export function Modal({
           size === "large"
             ? "h-[min(640px,92vh)] max-h-[min(92vh,860px)] max-w-[920px]"
             : size === "small"
-              ? "max-h-[min(92vh,860px)] max-w-[420px]"
+              ? "max-h-[min(92vh,860px)] max-w-[460px]"
               : "max-h-[min(92vh,860px)] max-w-[590px]",
         ].join(" ")}
         ref={panelRef}
