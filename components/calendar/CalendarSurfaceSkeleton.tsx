@@ -106,24 +106,6 @@ export function CalendarHeaderSkeleton() {
   );
 }
 
-export function CalendarToolbarSkeleton() {
-  return (
-    <div
-      className="flex min-h-[55px] flex-none items-center justify-between gap-[18px] border-b border-[var(--line)] bg-[var(--surface)] py-1.5 pr-[15px] pl-3.5"
-      aria-hidden="true"
-    >
-      <div className="grid gap-1">
-        <SkeletonBlock className="h-4 w-28 rounded-sm" />
-        <SkeletonBlock className="h-3 w-24 rounded-sm" />
-      </div>
-      <div className="flex items-center gap-3">
-        <SkeletonBlock className="h-5 w-36 rounded-sm max-[820px]:hidden" />
-        <SkeletonBlock className="h-9 w-24 rounded-lg" />
-      </div>
-    </div>
-  );
-}
-
 export function CalendarGridSkeleton({ overlay }: { overlay?: ReactNode }) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
