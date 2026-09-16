@@ -68,13 +68,7 @@ export async function materializeAndListNotifications(
       `
         SELECT notifications.id, current_booking.title,
           rooms.name AS room_name, current_booking.end_at AS ends_at,
-          -- The extra title is only useful for a personal back-to-back
-          -- booking; do not expose another user's event name in this toast.
-          CASE
-            WHEN next_booking.author_id = current_booking.author_id
-            THEN next_booking.title
-            ELSE NULL
-          END AS next_booking_title
+          next_booking.title AS next_booking_title
         FROM booking_end_notifications AS notifications
         INNER JOIN bookings AS current_booking
           ON current_booking.id = notifications.current_booking_id

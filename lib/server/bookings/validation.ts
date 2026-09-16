@@ -1,5 +1,6 @@
 import {
   DEFAULT_BOOKING_COLOR,
+  isAllowedBookingDuration,
   isAllowedWeeklyOccurrenceCount,
   isBookingColor,
   type BookingFieldErrors,
@@ -15,8 +16,6 @@ import { isUuid } from "./identifiers";
 import type { CreateBookingInput } from "./types";
 
 const LOCAL_TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const MINIMUM_DURATION_MINUTES = 30;
-const MAXIMUM_DURATION_MINUTES = 4 * 60;
 
 function requireString(
   value: unknown,
@@ -121,8 +120,7 @@ export function validateBookingInput(input: CreateBookingInput, now: Date) {
     throw new HttpError(message, 400, errors, code);
   }
 
-  const durationMinutes = (endAt.getTime() - startAt.getTime()) / 60_000;
-  if (durationMinutes < MINIMUM_DURATION_MINUTES || durationMinutes > MAXIMUM_DURATION_MINUTES) {
+  if (!isAllowedBookingDuration(startAt, endAt)) {
     throw new HttpError("Bookings must last from 30 minutes through 4 hours.", 400, { endTime: "Choose a duration from 30 minutes through 4 hours." }, "invalid_duration");
   }
 
