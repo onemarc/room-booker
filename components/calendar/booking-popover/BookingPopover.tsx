@@ -382,6 +382,14 @@ export function BookingPopover({
               onChange={(value) => {
                 setHasEditedTimes(true);
                 setStartTime(value);
+                const startIndex = timeOptions.indexOf(value);
+                const endIndex = timeOptions.indexOf(displayedEndTime);
+                if (startIndex !== -1 && (endIndex === -1 || startIndex >= endIndex)) {
+                  const nextIndex = Math.min(startIndex + 1, timeOptions.length - 1);
+                  if (nextIndex < timeOptions.length) {
+                    setEndTime(timeOptions[nextIndex]);
+                  }
+                }
               }}
             />
             <FieldError message={fieldErrors.startTime} className="text-[11px]" />
