@@ -71,11 +71,10 @@ export function BookingRow({
             {formatBookingDay(booking, timeZone)}
           </strong>
         </span>
-        <span className="grid min-w-0 grid-cols-[minmax(100px,0.82fr)_minmax(100px,0.9fr)_minmax(130px,1.2fr)_auto] items-center 
-                        gap-x-4 pr-3.5 pl-5 max-[1100px]:grid-cols-[repeat(3,minmax(0,1fr))_auto] max-[900px]:grid-cols-2 
-                        max-[900px]:gap-x-3 max-[900px]:gap-y-2.5 max-[640px]:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)_auto] 
-                        max-[640px]:gap-x-2 max-[640px]:gap-y-0 max-[640px]:px-2.5 max-[640px]:py-2">
-          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500] 
+        <span className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center 
+                        gap-x-5 pr-3.5 pl-5 max-[900px]:gap-x-3.5 
+                        max-[640px]:gap-x-2.5 max-[640px]:px-2.5 max-[640px]:py-2">
+          <span className={`flex min-w-0 flex-none items-center gap-2 whitespace-nowrap text-[15px] leading-tight font-[500] 
                           ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <LuClock4
               className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
@@ -83,7 +82,7 @@ export function BookingRow({
             />
             <span className="truncate">{formatBookingTime(booking, timeZone)}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2 text-[15px] leading-tight font-[500]
+          <span className={`flex min-w-0 flex-none items-center gap-2 whitespace-nowrap text-[15px] leading-tight font-[500]
                           ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <LuDoorOpen
               className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
@@ -91,8 +90,9 @@ export function BookingRow({
             />
             <span className="truncate">{booking.roomName}</span>
           </span>
-          <span className={`flex min-w-0 items-center gap-2 overflow-hidden pr-[48px] text-[15px] leading-tight font-[500]
-                          ${detailTextClass} max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:pr-1 max-[640px]:text-[11px]`}>
+          <span className={`flex min-w-0 items-center gap-2 overflow-hidden text-[15px] leading-tight font-[500]
+                          ${detailTextClass} ${isUpcoming ? "group-hover:pr-10 group-focus-within:pr-10" : ""} 
+                          transition-[padding] duration-150 max-[1100px]:text-[14px] max-[640px]:gap-1 max-[640px]:text-[11px]`}>
             <HiOutlinePencilSquare
               className="size-[21px] flex-none text-[#151918] max-[1100px]:size-[19px] max-[640px]:size-[15px]"
               aria-hidden="true"
