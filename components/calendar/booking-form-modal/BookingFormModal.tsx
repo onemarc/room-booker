@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import {
   DEFAULT_BOOKING_COLOR,
   BookingFieldErrors,
@@ -12,7 +12,7 @@ import { formatCalendarTimeZoneNotice, formatTimeInZone, getDayRangeUtc, getOffi
 import { Modal } from "@/components/calendar/Modal";
 import { BOOKING_COLOR_OPTIONS } from "@/components/calendar/booking-colors";
 import { BookingSelect } from "@/components/calendar/shared/BookingSelect";
-import { FieldError, getBookingTimeOptions } from "@/components/calendar/shared/booking-form-utils";
+import { FieldError, getBookingTimeOptions, getFilteredBookingTimeOptions, type BookingInterval } from "@/components/calendar/shared/booking-form-utils";
 import type { RoomAvailability } from "@/lib/rooms";
 
 function getInitialTimes({
@@ -103,28 +103,82 @@ export function BookingFormModal({
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
-  const timeOptions = useMemo(
-    () => getBookingTimeOptions(date, timeZone),
-    [date, timeZone],
+  const [existingBookings, setExistingBookings] = useState<BookingInterval[]>([]);
+
+  // Fetch schedule for the selected room and date to filter out occupied slots
+  useEffect(() => {
+    if (!roomId || !date) return;
+    const controller = new AbortController();
+    async function fetchRoomSchedule() {
+      try {
+        const searchParams = new URLSearchParams({
+          roomId,
+          date,
+          view: "day",
+          timeZone,
+        });
+        const response = await fetch(`/api/bookings?${searchParams.toString()}`, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const data = (await response.json()) as { bookings?: BookingInterval[] };
+          if (data.bookings) {
+            setExistingBookings(data.bookings);
+          }
+        }
+      } catch {
+        // Best-effort schedule query
+      }
+    }
+    void fetchRoomSchedule();
+    return () => controller.abort();
+  }, [date, roomId, timeZone]);
+
+  const { startOptions: availableStartOptions, getValidEndOptions } = useMemo(
+    () =>
+      getFilteredBookingTimeOptions({
+        date,
+        timeZone,
+        existingBookings,
+      }),
+    [date, existingBookings, timeZone],
   );
-  const startTimeOptions = timeOptions.includes(startTime)
-    ? timeOptions
-    : [startTime, ...timeOptions].sort();
-  const endTimeOptions = timeOptions.includes(endTime)
-    ? timeOptions
-    : [endTime, ...timeOptions].sort();
+
+  const resolvedStartTime =
+    availableStartOptions.length > 0 && !availableStartOptions.includes(startTime)
+      ? availableStartOptions[0]
+      : startTime;
+
+  const validEnds = useMemo(
+    () => getValidEndOptions(resolvedStartTime),
+    [getValidEndOptions, resolvedStartTime],
+  );
+
+  const resolvedEndTime =
+    validEnds.length > 0 &&
+    (!validEnds.includes(endTime) || resolvedStartTime >= endTime)
+      ? validEnds[0]
+      : endTime;
+
+  const startOptions = useMemo(() => {
+    const list = availableStartOptions.includes(resolvedStartTime)
+      ? availableStartOptions
+      : [resolvedStartTime, ...availableStartOptions].filter(Boolean).sort();
+    return list.map((time) => ({ value: time, label: time }));
+  }, [availableStartOptions, resolvedStartTime]);
+
+  const endOptions = useMemo(() => {
+    const list = validEnds.includes(resolvedEndTime)
+      ? validEnds
+      : [resolvedEndTime, ...validEnds].filter(Boolean).sort();
+    return list.map((time) => ({ value: time, label: time }));
+  }, [resolvedEndTime, validEnds]);
+
   const roomOptions = rooms.map((room) => ({
     value: room.id,
     label: room.name,
     description: `Floor ${room.floor} · ${room.capacity} people`,
-  }));
-  const startOptions = startTimeOptions.map((time) => ({
-    value: time,
-    label: time,
-  }));
-  const endOptions = endTimeOptions.map((time) => ({
-    value: time,
-    label: time,
   }));
 
   async function handleSubmit(
@@ -151,8 +205,8 @@ export function BookingFormModal({
           roomId,
           date,
           endDate: date,
-          startTime,
-          endTime,
+          startTime: resolvedStartTime,
+          endTime: resolvedEndTime,
           title,
           color,
           recurrenceCount,
@@ -189,9 +243,10 @@ export function BookingFormModal({
       onClose={onClose}
     >
       <form
-        className="grid min-h-0 gap-5 overflow-y-auto px-6 py-5 max-[640px]:px-4"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
         onSubmit={handleSubmit}
       >
+        <div className="grid flex-1 min-h-0 gap-5 overflow-y-auto px-6 py-5 max-[640px]:px-4">
         {formError ? (
           <div
             className="rounded-xl border border-[#ebcece] bg-[#fff8f8] px-3.5 py-3 text-sm leading-5 text-[#8d3d3d]"
@@ -241,11 +296,21 @@ export function BookingFormModal({
           <div className="grid gap-1.5 text-sm font-[650] text-[#334039]">
             <span>Start</span>
             <BookingSelect
-              value={startTime}
+              value={resolvedStartTime}
               options={startOptions}
               ariaLabel="Start time"
               isInvalid={Boolean(fieldErrors.startTime)}
-              onChange={setStartTime}
+              onChange={(nextStart) => {
+                setStartTime(nextStart);
+                const nextValidEnds = getValidEndOptions(nextStart);
+                if (
+                  nextValidEnds.length > 0 &&
+                  (!nextValidEnds.includes(resolvedEndTime) ||
+                    nextStart >= resolvedEndTime)
+                ) {
+                  setEndTime(nextValidEnds[0]);
+                }
+              }}
             />
             <FieldError message={fieldErrors.startTime} />
           </div>
@@ -253,7 +318,7 @@ export function BookingFormModal({
           <div className="grid gap-1.5 text-sm font-[650] text-[#334039]">
             <span>End</span>
             <BookingSelect
-              value={endTime}
+              value={resolvedEndTime}
               options={endOptions}
               ariaLabel="End time"
               isInvalid={Boolean(fieldErrors.endTime)}
@@ -339,7 +404,9 @@ export function BookingFormModal({
           <FieldError message={fieldErrors.color} />
         </fieldset>
 
-        <div className="flex justify-end gap-2 border-t border-[var(--line)] pt-4">
+        </div>
+
+        <div className="flex flex-none justify-end gap-2 border-t border-[var(--line)] bg-[var(--surface)] px-6 py-4 max-[640px]:px-4">
           <button
             className="h-10 cursor-pointer rounded-[9px] border border-[#ccd4ce] bg-white px-4 text-sm
                       font-[650] text-[#4c5850] hover:bg-[#f4f7f4] disabled:cursor-not-allowed disabled:opacity-50"
