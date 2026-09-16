@@ -194,14 +194,16 @@ async function seed() {
     const userIds = new Map();
 
     for (const [index, user] of TEST_USERS.entries()) {
+      // Seeded accounts are confirmed by default.
       const result = await client.query(
         `
-          INSERT INTO users (display_name, email, password_hash)
-          VALUES ($1, $2, $3)
+          INSERT INTO users (display_name, email, password_hash, email_confirmed_at)
+          VALUES ($1, $2, $3, now())
           ON CONFLICT (email) DO UPDATE
           SET
             display_name = EXCLUDED.display_name,
             password_hash = EXCLUDED.password_hash,
+            email_confirmed_at = COALESCE(users.email_confirmed_at, now()),
             updated_at = now()
           RETURNING id
         `,
