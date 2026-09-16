@@ -112,6 +112,7 @@ export function useCalendarGridState({
 
   const today = getZonedDateIso(new Date(), timeZone);
   const timeZoneNotice = formatCalendarTimeZoneNotice(timeZone);
+  const userGmtOffset = formatGmtOffset(timeZone);
   const officeGmtOffset = formatGmtOffset(OFFICE_TIME_ZONE);
   const rows = useMemo<CalendarGridRow[]>(() => {
     const officeStart = localDateTimeToUtc(
@@ -283,6 +284,7 @@ export function useCalendarGridState({
     today,
     timeZone,
     timeZoneNotice,
+    userGmtOffset,
     officeGmtOffset,
     rows,
     pastSlotKeys,

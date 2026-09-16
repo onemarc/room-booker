@@ -136,8 +136,8 @@ export function CalendarGridSurface({
     currentTimeTop,
     today,
     timeZone,
-    officeGmtOffset,
     timeZoneNotice,
+    userGmtOffset,
     dates,
     rows,
     pastSlotKeys,
@@ -154,7 +154,6 @@ export function CalendarGridSurface({
     moveSelection,
     resizeSelection,
     draftSelections,
-    selectedGridSelection,
     scrollViewportRef,
     handleScroll,
     setDateColumnRef,
@@ -186,11 +185,11 @@ export function CalendarGridSurface({
         >
           <div className="relative sticky left-0 z-9 border-r border-[var(--grid-line)] bg-[linear-gradient(to_bottom,var(--surface)_0_calc(100%_-_6px),transparent_calc(100%_-_6px)_100%)]">
             <span
-              className="absolute right-[9px] bottom-[9px] whitespace-nowrap text-[11px] text-[#778179]"
+              className="absolute right-[9px] bottom-[9px] whitespace-nowrap text-[11px] font-medium text-[#778179]"
               title={timeZoneNotice}
               aria-label={timeZoneNotice}
             >
-              {officeGmtOffset}
+              {userGmtOffset}
             </span>
           </div>
           {dates.map((date) => {
@@ -253,6 +252,7 @@ export function CalendarGridSurface({
                 // Highlight active day column slots with subtle background tint matching the header
                 return (
                   <button
+                    key={date}
                     className={[
                       isPastSlot
                         ? "cursor-not-allowed"
