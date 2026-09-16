@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { FiCheck } from "react-icons/fi";
 
 type AuthMode = "login" | "register";
 type FieldName = "displayName" | "email" | "password";
@@ -15,12 +16,52 @@ type ErrorResponse = {
   };
 };
 
+/**
+ * Password validation rules for new registrations.
+ * Evaluated live as the user types so indicators turn green as requirements are satisfied.
+ */
+type PasswordRequirement = {
+  id: string;
+  label: string;
+  test: (value: string) => boolean;
+};
+
+const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
+  {
+    id: "length",
+    label: "8–72 characters",
+    test: (value: string) => value.length >= 8 && value.length <= 72,
+  },
+  {
+    id: "letter",
+    label: "At least one letter",
+    test: (value: string) => /[a-zA-Z]/.test(value),
+  },
+  {
+    id: "number",
+    label: "At least one number",
+    test: (value: string) => /[0-9]/.test(value),
+  },
+];
+
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [passwordValue, setPasswordValue] = useState("");
   const isRegistration = mode === "register";
+
+  function handlePasswordChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setPasswordValue(event.target.value);
+    if (fieldErrors.password) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.password;
+        return next;
+      });
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,6 +77,21 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       email: formData.get("email"),
       password: formData.get("password"),
     };
+
+    if (isRegistration) {
+      const allMet = PASSWORD_REQUIREMENTS.every((req) =>
+        req.test(String(payload.password ?? "")),
+      );
+      if (!allMet) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          password: "Password must satisfy all requirements.",
+        }));
+        setMessage("Check the highlighted fields and try again.");
+        setPending(false);
+        return;
+      }
+    }
 
     try {
       // Route handlers remain the validation authority; the client only presents their field errors.
@@ -97,6 +153,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         id="password"
         label="Password"
         type="password"
+        value={passwordValue}
+        onChange={handlePasswordChange}
         autoComplete={
           isRegistration ? "new-password" : "current-password"
         }
@@ -104,7 +162,40 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           isRegistration ? "8–72 characters" : "Your password"
         }
         error={fieldErrors.password}
-      />
+      >
+        {isRegistration ? (
+          <ul
+            className="m-0 mt-1 grid gap-1.5 p-0 list-none text-xs"
+            aria-label="Password requirements"
+          >
+            {PASSWORD_REQUIREMENTS.map((req) => {
+              const isMet = req.test(passwordValue);
+              return (
+                <li
+                  key={req.id}
+                  className={`flex items-center gap-2 transition-colors duration-150 ${
+                    isMet
+                      ? "font-[620] text-[#255b43]"
+                      : "text-[#667069]"
+                  }`}
+                >
+                  <span
+                    className={`grid size-4 flex-none place-items-center rounded-full transition-colors duration-150 ${
+                      isMet
+                        ? "bg-[#255b43] text-white"
+                        : "border border-[#ccd3cd] bg-white text-transparent"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    <FiCheck className="size-2.5 stroke-[3]" />
+                  </span>
+                  <span>{req.label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </FormField>
 
       {message ? (
         <p
@@ -148,16 +239,22 @@ function FormField({
   id,
   label,
   type = "text",
+  value,
+  onChange,
   autoComplete,
   placeholder,
   error,
+  children,
 }: {
   id: FieldName;
   label: string;
   type?: "text" | "email" | "password";
+  value?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   autoComplete: string;
   placeholder: string;
   error?: string;
+  children?: React.ReactNode;
 }) {
   const errorId = `${id}-error`;
 
@@ -174,6 +271,7 @@ function FormField({
         id={id}
         name={id}
         type={type}
+        {...(value !== undefined ? { value, onChange } : {})}
         autoComplete={autoComplete}
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
@@ -188,6 +286,7 @@ function FormField({
           {error}
         </p>
       ) : null}
+      {children}
     </div>
   );
 }
