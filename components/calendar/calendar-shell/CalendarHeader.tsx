@@ -8,7 +8,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { RoomSelector } from "@/components/calendar/RoomSelector";
 import { NotificationBell } from "@/components/calendar/NotificationBell";
 import type { RoomAvailability } from "@/lib/rooms";
-import type { CalendarView } from "@/lib/time";
+import { formatCalendarTimeZoneNotice, type CalendarView } from "@/lib/time";
 
 const HEADER_CLASS = [
   "z-30 flex min-h-[58px] flex-none items-center justify-between",
@@ -122,6 +122,7 @@ export function CalendarHeader({
     "&roomId=" +
     selectedRoomId;
   const compactPeriodLabel = getCompactPeriodLabel(periodLabel);
+  const timeZoneNotice = formatCalendarTimeZoneNotice(timeZone);
 
   return (
     <header className={HEADER_CLASS}>
@@ -257,6 +258,16 @@ export function CalendarHeader({
           aria-hidden="true"
         />
         <div className="flex items-center gap-1 max-[760px]:gap-0.5">
+          <span
+            className="max-w-[190px] overflow-hidden text-ellipsis whitespace-nowrap px-1 text-[13px] text-[#6c776f] max-[1060px]:hidden"
+            title={timeZoneNotice}
+          >
+            {timeZoneNotice}
+          </span>
+          <span
+            className="h-[23px] w-px flex-none bg-[#d7ddd8] max-[1060px]:hidden"
+            aria-hidden="true"
+          />
           <span
             className={`${DISPLAY_NAME_CLASS} max-[1060px]:hidden`}
             title={displayName}

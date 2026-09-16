@@ -26,6 +26,7 @@ export function useBookingEditor({
   replaceScheduleBooking,
   removeScheduleBooking,
   requestScheduleRefresh,
+  requestRoomsRefresh,
   getZonedDateIso,
   startOfCalendarMonth,
   setSelectedDate,
@@ -38,15 +39,22 @@ export function useBookingEditor({
   replaceScheduleBooking: (booking: ScheduleBooking) => void;
   removeScheduleBooking: (bookingId: string) => void;
   requestScheduleRefresh: (mode: ScheduleLoadingMode) => void;
+  requestRoomsRefresh: () => void;
   getZonedDateIso: (date: Date, timeZone: string) => string;
   startOfCalendarMonth: (date: string) => string;
   setSelectedDate: (date: string) => void;
   setVisibleMiniCalendarMonth: (month: string) => void;
 }) {
   // selectActiveDate depends on bookingEditor.close(), creating a circular
-  // declaration dependency. CalendarShell assigns this ref after declaring
-  // selectActiveDate, so handleCreated reads it at invocation time.
+  // declaration dependency. CalendarShell registers this handler via
+  // registerSelectActiveDate.
   const selectActiveDateRef = useRef<((date: string) => void) | null>(null);
+  const registerSelectActiveDate = useCallback(
+    (handler: (date: string) => void) => {
+      selectActiveDateRef.current = handler;
+    },
+    [],
+  );
   const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
   const [bookingEditorTarget, setBookingEditorTarget] =
     useState<BookingEditorTarget | null>(null);
@@ -107,10 +115,12 @@ export function useBookingEditor({
       replaceScheduleBooking(booking);
       selectActiveDateRef.current?.(date);
       requestScheduleRefresh("blocking");
+      requestRoomsRefresh();
       setIsBookingFormOpen(false);
     },
     [
       replaceScheduleBooking,
+      requestRoomsRefresh,
       requestScheduleRefresh,
       setSelectedRoomId,
     ],
@@ -127,25 +137,24 @@ export function useBookingEditor({
       // the visible schedule with a full loading state.
       replaceScheduleBooking(booking);
       requestScheduleRefresh("background");
+      requestRoomsRefresh();
       close();
     },
-    [close, replaceScheduleBooking, requestScheduleRefresh],
+    [close, replaceScheduleBooking, requestRoomsRefresh, requestScheduleRefresh],
   );
 
   const handleDeleted = useCallback(
     (bookingId: string) => {
       removeScheduleBooking(bookingId);
       requestScheduleRefresh("background");
+      requestRoomsRefresh();
       close();
     },
-    [close, removeScheduleBooking, requestScheduleRefresh],
+    [close, removeScheduleBooking, requestRoomsRefresh, requestScheduleRefresh],
   );
 
   const handleCreateSelection = useCallback(
     ({ gridSelection, ...selection }: BookingSelection) => {
-      setIsBookingFormOpen(false);
-      setDraftColor(DEFAULT_BOOKING_COLOR);
-      setPreviewBookingColor(null);
       selectGridDate(gridSelection.date);
       setSelectedGridSelection(gridSelection);
       setBookingEditorTarget({
@@ -175,6 +184,7 @@ export function useBookingEditor({
   const handleEditBooking = useCallback(
     (selection: EditableBookingSelection) => {
       setIsBookingFormOpen(false);
+      setDraftColor(selection.booking.color);
       setPreviewBookingColor(null);
       setSelectedGridSelection(null);
       setBookingEditorTarget({
@@ -222,6 +232,6 @@ export function useBookingEditor({
     handleColorChange,
     openBookingForm,
     setIsBookingFormOpen,
-    selectActiveDateRef,
+    registerSelectActiveDate,
   };
 }

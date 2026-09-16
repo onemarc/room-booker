@@ -140,6 +140,7 @@ export function CalendarShell({
     replaceScheduleBooking,
     removeScheduleBooking,
     requestScheduleRefresh,
+    requestRoomsRefresh,
     getZonedDateIso,
     startOfCalendarMonth,
     setSelectedDate,
@@ -265,9 +266,12 @@ export function CalendarShell({
     },
     [bookingEditor, markScheduleBlocking, view],
   );
-  bookingEditor.selectActiveDateRef.current = selectActiveDate;
+  const registerSelectActiveDate = bookingEditor.registerSelectActiveDate;
+  useEffect(() => {
+    registerSelectActiveDate(selectActiveDate);
+  }, [registerSelectActiveDate, selectActiveDate]);
 
-  function changeCalendarView(nextView: CalendarView) {
+  const changeCalendarView = useCallback((nextView: CalendarView) => {
     const targetDate = getCalendarViewTransitionTarget({
       activeDate,
       currentView: view,
@@ -293,7 +297,20 @@ export function CalendarShell({
       ),
     );
     bookingEditor.close();
-  }
+  }, [activeDate, bookingEditor, markScheduleBlocking, view, visibleGridRange.startDate]);
+
+  const hasCheckedMobileView = useRef(false);
+  useEffect(() => {
+    if (hasCheckedMobileView.current || typeof window === "undefined") return;
+    hasCheckedMobileView.current = true;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("view") && window.innerWidth < 640 && view === "week") {
+      const frame = window.requestAnimationFrame(() => {
+        changeCalendarView("day");
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [changeCalendarView, view]);
 
   const finishGridViewPositioning = useCallback(() => {
     setIsGridViewPositioning(false);
@@ -507,7 +524,15 @@ export function CalendarShell({
         <BookingFormModal
           rooms={rooms}
           selectedRoomId={selectedRoomId}
-          activeDate={activeDate}
+          activeDate={
+            selectedDate &&
+            selectedDate >= visibleGridRange.startDate &&
+            selectedDate <= visibleGridRange.endDate
+              ? selectedDate
+              : (view === "week"
+                  ? visibleGridRange.startDate
+                  : gridTargetDate)
+          }
           timeZone={timeZone}
           onClose={() => bookingEditor.setIsBookingFormOpen(false)}
           onCreated={bookingEditor.handleCreated}
